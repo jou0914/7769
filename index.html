@@ -4,87 +4,80 @@
   <meta charset="UTF-8">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f4f7f6; font-family: "Microsoft JhengHei", sans-serif; }
-    .container { max-width: 800px; margin-top: 30px; }
-    .header-box { background: #343a40; color: white; padding: 20px; border-radius: 10px 10px 0 0; }
-    .content-box { background: white; padding: 20px; border-radius: 0 0 10px 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .table-buy { color: #28a745; }
-    .table-sell { color: #dc3545; }
-    .loading-spinner { display: flex; justify-content: center; padding: 50px; }
+    body { background: #f4f6f9; font-family: "Microsoft JhengHei", sans-serif; padding: 20px; }
+    .card { border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); border: none; overflow: hidden; }
+    .header-bar { background: #1565c0; color: white; padding: 25px; text-align: center; }
+    .table thead { background: #f8f9fa; }
+    .qty-text { font-weight: 700; text-align: right; }
+    #loader { padding: 60px; text-align: center; }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="header-box text-center">
-    <h2>7769 鴻勁 每日買賣超前十名</h2>
-    <p class="mb-0">即時分點券商進出明細</p>
-  </div>
-  
-  <div class="content-box">
-    <div id="loader" class="loading-spinner">
-      <div class="spinner-border text-primary" role="status"></div>
-      <span class="ms-3">資料讀取中...</span>
+<div class="container" style="max-width: 900px;">
+  <div class="card">
+    <div class="header-bar">
+      <h2 class="mb-1">7769 鴻勁 分點買賣超排行</h2>
+      <p id="info" class="mb-0 opacity-75">正在同步市場數據...</p>
     </div>
-
-    <div id="result" class="row" style="display:none;">
-      <div class="col-md-6">
-        <h5 class="text-success border-bottom pb-2">🟢 買超券商排行</h5>
-        <table class="table table-hover">
-          <thead><tr><th>券商名稱</th><th class="text-end">買超張數</th></tr></thead>
-          <tbody id="buyBody"></tbody>
-        </table>
+    
+    <div class="p-4 bg-white">
+      <div id="loader">
+        <div class="spinner-grow text-primary" role="status"></div>
+        <p class="mt-3 text-muted">連線至交易所數據源...</p>
       </div>
-      <div class="col-md-6">
-        <h5 class="text-danger border-bottom pb-2">🔴 賣超券商排行</h5>
-        <table class="table table-hover">
-          <thead><tr><th>券商名稱</th><th class="text-end">賣超張數</th></tr></thead>
-          <tbody id="sellBody"></tbody>
-        </table>
+
+      <div id="result" class="row d-none">
+        <div class="col-md-6 border-end">
+          <h5 class="text-success fw-bold mb-3">🟢 買超前 10 名 (張)</h5>
+          <table class="table table-hover">
+            <thead><tr><th>券商分點</th><th class="text-end">買超</th></tr></thead>
+            <tbody id="buyContent"></tbody>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <h5 class="text-danger fw-bold mb-3">🔴 賣超前 10 名 (張)</h5>
+          <table class="table table-hover">
+            <thead><tr><th>券商分點</th><th class="text-end">賣超</th></tr></thead>
+            <tbody id="sellContent"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // 當頁面載入時自動執行後端 getStockData 函式
-  window.onload = function() {
+  // 初始化載入數據
+  window.onload = () => {
     google.script.run
-      .withSuccessHandler(renderData)
-      .withFailureHandler(showError)
+      .withSuccessHandler(updateUI)
       .getStockData('7769');
   };
 
-  function renderData(data) {
-    if (data.error) {
-      showError(data.error);
+  function updateUI(res) {
+    if (res.error) {
+      document.getElementById('loader').innerHTML = `<div class="alert alert-warning">${res.error}</div>`;
       return;
     }
-
-    const buyBody = document.getElementById('buyBody');
-    const sellBody = document.getElementById('sellBody');
     
-    let bHtml = '';
-    data.buy.forEach(item => {
-      bHtml += `<tr><td>${item.name}</td><td class="text-end fw-bold">${item.qty}</td></tr>`;
-    });
+    document.getElementById('info').innerText = `數據日期：${res.date}`;
     
-    let sHtml = '';
-    data.sell.forEach(item => {
-      sHtml += `<tr><td>${item.name}</td><td class="text-end fw-bold">${item.qty}</td></tr>`;
-    });
+    const renderTable = (list, targetId, colorClass) => {
+      document.getElementById(targetId).innerHTML = list.map(item => `
+        <tr>
+          <td class="text-secondary">${item.name}</td>
+          <td class="qty-text ${colorClass}">${item.qty}</td>
+        </tr>
+      `).join('');
+    };
 
-    buyBody.innerHTML = bHtml;
-    sellBody.innerHTML = sHtml;
-    
-    document.getElementById('loader').style.display = 'none';
-    document.getElementById('result').style.display = 'flex';
-  }
+    renderTable(res.buy, 'buyContent', 'text-success');
+    renderTable(res.sell, 'sellContent', 'text-danger');
 
-  function showError(msg) {
-    document.getElementById('loader').innerHTML = `<div class="alert alert-danger">${msg}</div>`;
+    document.getElementById('loader').classList.add('d-none');
+    document.getElementById('result').classList.remove('d-none');
   }
 </script>
-
 </body>
 </html>
