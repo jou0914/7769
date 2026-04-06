@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f7f6; font-family: "Microsoft JhengHei", sans-serif; }
+    .container { max-width: 800px; margin-top: 30px; }
+    .header-box { background: #343a40; color: white; padding: 20px; border-radius: 10px 10px 0 0; }
+    .content-box { background: white; padding: 20px; border-radius: 0 0 10px 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .table-buy { color: #28a745; }
+    .table-sell { color: #dc3545; }
+    .loading-spinner { display: flex; justify-content: center; padding: 50px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-box text-center">
+    <h2>7769 鴻勁 每日買賣超前十名</h2>
+    <p class="mb-0">即時分點券商進出明細</p>
+  </div>
+  
+  <div class="content-box">
+    <div id="loader" class="loading-spinner">
+      <div class="spinner-border text-primary" role="status"></div>
+      <span class="ms-3">資料讀取中...</span>
+    </div>
+
+    <div id="result" class="row" style="display:none;">
+      <div class="col-md-6">
+        <h5 class="text-success border-bottom pb-2">🟢 買超券商排行</h5>
+        <table class="table table-hover">
+          <thead><tr><th>券商名稱</th><th class="text-end">買超張數</th></tr></thead>
+          <tbody id="buyBody"></tbody>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <h5 class="text-danger border-bottom pb-2">🔴 賣超券商排行</h5>
+        <table class="table table-hover">
+          <thead><tr><th>券商名稱</th><th class="text-end">賣超張數</th></tr></thead>
+          <tbody id="sellBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 當頁面載入時自動執行後端 getStockData 函式
+  window.onload = function() {
+    google.script.run
+      .withSuccessHandler(renderData)
+      .withFailureHandler(showError)
+      .getStockData('7769');
+  };
+
+  function renderData(data) {
+    if (data.error) {
+      showError(data.error);
+      return;
+    }
+
+    const buyBody = document.getElementById('buyBody');
+    const sellBody = document.getElementById('sellBody');
+    
+    let bHtml = '';
+    data.buy.forEach(item => {
+      bHtml += `<tr><td>${item.name}</td><td class="text-end fw-bold">${item.qty}</td></tr>`;
+    });
+    
+    let sHtml = '';
+    data.sell.forEach(item => {
+      sHtml += `<tr><td>${item.name}</td><td class="text-end fw-bold">${item.qty}</td></tr>`;
+    });
+
+    buyBody.innerHTML = bHtml;
+    sellBody.innerHTML = sHtml;
+    
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('result').style.display = 'flex';
+  }
+
+  function showError(msg) {
+    document.getElementById('loader').innerHTML = `<div class="alert alert-danger">${msg}</div>`;
+  }
+</script>
+
+</body>
+</html>
