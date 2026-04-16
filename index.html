@@ -1,564 +1,146 @@
 <!DOCTYPE html>
-
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>7769 鴻勁精密 · 券商買賣超</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0e17;
-    --surface: #111827;
-    --border: #1e2d40;
-    --accent-buy: #00d4aa;
-    --accent-sell: #ff4d6d;
-    --accent-dim-buy: rgba(0,212,170,0.12);
-    --accent-dim-sell: rgba(255,77,109,0.12);
-    --text-primary: #e8edf5;
-    --text-secondary: #6b7a96;
-    --text-mono: #7ec8e3;
-    --gold: #f5c842;
-  }
-
-- { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-background: var(–bg);
-color: var(–text-primary);
-font-family: ‘Noto Sans TC’, sans-serif;
-min-height: 100vh;
-overflow-x: hidden;
-}
-
-/* Grid background */
-body::before {
-content: ‘’;
-position: fixed;
-inset: 0;
-background-image:
-linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
-linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
-background-size: 40px 40px;
-pointer-events: none;
-z-index: 0;
-}
-
-.container {
-position: relative;
-z-index: 1;
-max-width: 960px;
-margin: 0 auto;
-padding: 32px 20px 60px;
-}
-
-/* Header */
-header {
-display: flex;
-align-items: flex-end;
-justify-content: space-between;
-margin-bottom: 36px;
-flex-wrap: wrap;
-gap: 12px;
-}
-
-.title-block {}
-
-.ticker-badge {
-display: inline-block;
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 11px;
-color: var(–gold);
-background: rgba(245,200,66,0.1);
-border: 1px solid rgba(245,200,66,0.3);
-padding: 2px 8px;
-border-radius: 3px;
-letter-spacing: 1px;
-margin-bottom: 6px;
-}
-
-h1 {
-font-size: 28px;
-font-weight: 700;
-letter-spacing: -0.5px;
-color: var(–text-primary);
-line-height: 1;
-}
-
-h1 span {
-color: var(–text-secondary);
-font-weight: 300;
-font-size: 18px;
-margin-left: 8px;
-}
-
-.meta-row {
-display: flex;
-align-items: center;
-gap: 16px;
-margin-top: 8px;
-flex-wrap: wrap;
-}
-
-.date-label {
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 12px;
-color: var(–text-mono);
-}
-
-/* Controls */
-.controls {
-display: flex;
-gap: 10px;
-align-items: center;
-}
-
-.date-input {
-background: var(–surface);
-border: 1px solid var(–border);
-color: var(–text-primary);
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 13px;
-padding: 8px 12px;
-border-radius: 6px;
-outline: none;
-cursor: pointer;
-transition: border-color 0.2s;
-}
-
-.date-input:focus {
-border-color: var(–accent-buy);
-}
-
-.btn-fetch {
-background: var(–accent-buy);
-color: #001a14;
-border: none;
-font-family: ‘Noto Sans TC’, sans-serif;
-font-size: 13px;
-font-weight: 700;
-padding: 8px 20px;
-border-radius: 6px;
-cursor: pointer;
-transition: opacity 0.2s, transform 0.1s;
-white-space: nowrap;
-}
-
-.btn-fetch:hover { opacity: 0.85; }
-.btn-fetch:active { transform: scale(0.97); }
-.btn-fetch:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* Status bar */
-.status-bar {
-display: flex;
-align-items: center;
-gap: 8px;
-font-size: 12px;
-color: var(–text-secondary);
-margin-bottom: 24px;
-min-height: 20px;
-}
-
-.status-dot {
-width: 6px; height: 6px;
-border-radius: 50%;
-background: var(–text-secondary);
-flex-shrink: 0;
-}
-.status-dot.loading { background: var(–gold); animation: pulse 1s infinite; }
-.status-dot.ok { background: var(–accent-buy); }
-.status-dot.err { background: var(–accent-sell); }
-
-@keyframes pulse {
-0%,100% { opacity: 1; } 50% { opacity: 0.3; }
-}
-
-/* Summary strip */
-.summary-strip {
-display: grid;
-grid-template-columns: repeat(3, 1fr);
-gap: 12px;
-margin-bottom: 28px;
-}
-
-.summary-card {
-background: var(–surface);
-border: 1px solid var(–border);
-border-radius: 8px;
-padding: 14px 18px;
-}
-
-.summary-card .label {
-font-size: 11px;
-color: var(–text-secondary);
-letter-spacing: 0.5px;
-text-transform: uppercase;
-margin-bottom: 4px;
-}
-
-.summary-card .value {
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 20px;
-font-weight: 600;
-}
-
-.value.buy { color: var(–accent-buy); }
-.value.sell { color: var(–accent-sell); }
-.value.net-pos { color: var(–accent-buy); }
-.value.net-neg { color: var(–accent-sell); }
-
-/* Tables */
-.tables-wrap {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 20px;
-}
-
-@media (max-width: 600px) {
-.tables-wrap { grid-template-columns: 1fr; }
-.summary-strip { grid-template-columns: 1fr; }
-h1 { font-size: 22px; }
-}
-
-.table-section {}
-
-.section-header {
-display: flex;
-align-items: center;
-gap: 8px;
-margin-bottom: 10px;
-}
-
-.section-dot {
-width: 8px; height: 8px;
-border-radius: 50%;
-}
-
-.section-dot.buy { background: var(–accent-buy); box-shadow: 0 0 8px var(–accent-buy); }
-.section-dot.sell { background: var(–accent-sell); box-shadow: 0 0 8px var(–accent-sell); }
-
-.section-title {
-font-size: 13px;
-font-weight: 500;
-letter-spacing: 1px;
-text-transform: uppercase;
-}
-
-.section-title.buy { color: var(–accent-buy); }
-.section-title.sell { color: var(–accent-sell); }
-
-table {
-width: 100%;
-border-collapse: collapse;
-font-size: 13px;
-}
-
-thead th {
-font-size: 10px;
-font-weight: 500;
-letter-spacing: 0.8px;
-text-transform: uppercase;
-color: var(–text-secondary);
-padding: 8px 10px;
-border-bottom: 1px solid var(–border);
-text-align: left;
-}
-
-thead th:last-child { text-align: right; }
-
-tbody tr {
-border-bottom: 1px solid rgba(255,255,255,0.03);
-transition: background 0.15s;
-}
-
-tbody tr:hover { background: rgba(255,255,255,0.03); }
-
-tbody td {
-padding: 9px 10px;
-color: var(–text-primary);
-}
-
-.rank-cell {
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 11px;
-color: var(–text-secondary);
-width: 28px;
-}
-
-.broker-cell {
-font-size: 13px;
-max-width: 110px;
-overflow: hidden;
-text-overflow: ellipsis;
-white-space: nowrap;
-}
-
-.amount-cell {
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 13px;
-text-align: right;
-white-space: nowrap;
-}
-
-.amount-cell.buy { color: var(–accent-buy); }
-.amount-cell.sell { color: var(–accent-sell); }
-
-/* Bar inside row */
-.bar-wrap {
-position: relative;
-height: 2px;
-background: var(–border);
-border-radius: 1px;
-margin-top: 4px;
-}
-
-.bar-fill {
-position: absolute;
-left: 0; top: 0;
-height: 100%;
-border-radius: 1px;
-transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
-}
-
-.bar-fill.buy { background: var(–accent-buy); }
-.bar-fill.sell { background: var(–accent-sell); }
-
-/* Loading skeleton */
-.skeleton {
-background: linear-gradient(90deg, var(–surface) 25%, var(–border) 50%, var(–surface) 75%);
-background-size: 200% 100%;
-animation: shimmer 1.2s infinite;
-border-radius: 4px;
-height: 14px;
-}
-
-@keyframes shimmer {
-0% { background-position: 200% 0; }
-100% { background-position: -200% 0; }
-}
-
-.empty-msg {
-text-align: center;
-color: var(–text-secondary);
-font-size: 13px;
-padding: 40px 0;
-grid-column: 1 / -1;
-}
-
-.gas-note {
-margin-top: 32px;
-background: rgba(245,200,66,0.05);
-border: 1px solid rgba(245,200,66,0.2);
-border-radius: 8px;
-padding: 14px 18px;
-font-size: 12px;
-color: var(–text-secondary);
-line-height: 1.7;
-}
-
-.gas-note strong { color: var(–gold); }
-.gas-note code {
-font-family: ‘Share Tech Mono’, monospace;
-font-size: 11px;
-background: rgba(245,200,66,0.08);
-padding: 1px 5px;
-border-radius: 3px;
-color: var(–gold);
-}
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7769 鴻勁 - 分點明細解析(修正版)</title>
+    <style>
+        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: #f4f7f9; padding: 20px; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .upload-box { border: 2px dashed #007bff; padding: 30px; text-align: center; border-radius: 10px; background: #f8fbff; margin-bottom: 20px; }
+        .btn-select { background: #007bff; color: white; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; display: inline-block; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
+        .buy-head { background: #ff4d4f; color: white; }
+        .sell-head { background: #52c41a; color: white; }
+        .up { color: #d20000; font-weight: bold; }
+        .down { color: #008000; font-weight: bold; }
+        #status { margin-top: 10px; color: #666; }
+        input[type="file"] { display: none; }
+    </style>
 </head>
 <body>
+
 <div class="container">
-
-  <header>
-    <div class="title-block">
-      <div class="ticker-badge">TW · 7769</div>
-      <h1>鴻勁精密 <span>券商買賣超</span></h1>
-      <div class="meta-row">
-        <span class="date-label" id="currentDateLabel">— 選擇日期查詢 —</span>
-      </div>
+    <h2 style="text-align:center;">7769 鴻勁 - 分點進出明細分析</h2>
+    
+    <div class="upload-box">
+        <p>請上傳從證交所下載的 <b>分點進出明細 CSV</b></p>
+        <label for="csvFile" class="btn-select">選擇檔案並分析</label>
+        <input type="file" id="csvFile" accept=".csv">
+        <div id="status">尚未選擇檔案</div>
     </div>
-    <div class="controls">
-      <input type="date" class="date-input" id="dateInput">
-      <button class="btn-fetch" id="fetchBtn" onclick="fetchData()">查詢</button>
+
+    <div id="result" class="grid" style="display:none;">
+        <!-- 買超排行 -->
+        <div>
+            <table>
+                <thead>
+                    <tr><th colspan="3" class="buy-head">買超前十名 (張)</th></tr>
+                    <tr><th>券商</th><th>買/賣</th><th>買超</th></tr>
+                </thead>
+                <tbody id="buy-body"></tbody>
+            </table>
+        </div>
+        <!-- 賣超排行 -->
+        <div>
+            <table>
+                <thead>
+                    <tr><th colspan="3" class="sell-head">賣超前十名 (張)</th></tr>
+                    <tr><th>券商</th><th>買/賣</th><th>賣超</th></tr>
+                </thead>
+                <tbody id="sell-body"></tbody>
+            </table>
+        </div>
     </div>
-  </header>
-
-  <div class="status-bar">
-    <div class="status-dot" id="statusDot"></div>
-    <span id="statusText">請設定 GAS_URL 並選擇日期</span>
-  </div>
-
-  <div class="summary-strip" id="summaryStrip" style="display:none">
-    <div class="summary-card">
-      <div class="label">買超合計（千股）</div>
-      <div class="value buy" id="sumBuy">—</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">賣超合計（千股）</div>
-      <div class="value sell" id="sumSell">—</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">淨買超（千股）</div>
-      <div class="value" id="sumNet">—</div>
-    </div>
-  </div>
-
-  <div class="tables-wrap" id="tablesWrap">
-    <div class="empty-msg" id="emptyMsg">← 請輸入 GAS URL 並選擇交易日查詢</div>
-  </div>
-
-  <div class="gas-note">
-    <strong>⚙ 使用說明</strong><br>
-    1. 將下方 GAS 程式碼部署為 Web App（執行身分：<code>我</code>，存取：<code>任何人</code>）<br>
-    2. 取得部署 URL，貼入頁面頂端 <code>GAS_URL</code> 變數<br>
-    3. 選擇交易日按「查詢」，GAS 會從 TWSE 抓取 7769 當日券商買賣超前10名
-  </div>
-
 </div>
 
 <script>
-// ──────────────────────────────────────────────
-//  ★ 請將你的 GAS Web App URL 貼在這裡 ★
-// ──────────────────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyxn5J6wIVLxRHuWbAigreCh7f9lOliJAgGFPkOqKj3-elZyS0xVahYDQvxcQuSXrXS/exec';
-// ──────────────────────────────────────────────
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-// 設定預設日期為今天
-(function initDate() {
-  const d = new Date();
-  const fmt = d.toISOString().slice(0, 10);
-  document.getElementById('dateInput').value = fmt;
-})();
+        document.getElementById('status').innerText = "讀取中: " + file.name;
+        
+        const reader = new FileReader();
+        reader.readAsText(file, 'Big5');
 
-function setStatus(type, msg) {
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  dot.className = 'status-dot ' + type;
-  txt.textContent = msg;
-}
+        reader.onload = function(event) {
+            const text = event.target.result;
+            parseTwseCsv(text);
+        };
+    });
 
-function fmtThousands(n) {
-  if (n == null || isNaN(n)) return '—';
-  return Number(n).toLocaleString('zh-TW');
-}
+    function parseTwseCsv(text) {
+        const lines = text.split('\n');
+        const brokerMap = {}; 
 
-async function fetchData() {
-  const dateVal = document.getElementById('dateInput').value;
-  if (!dateVal) { setStatus('err', '請選擇日期'); return; }
-  if (GAS_URL.includes('YOUR_DEPLOYMENT_ID')) {
-    setStatus('err', '請先設定 GAS_URL！');
-    return;
-  }
+        lines.forEach((line) => {
+            // 移除引號並分割
+            const cols = line.replace(/"/g, '').split(',');
+            
+            // 根據圖片修正後的索引：
+            // 左半邊：券商[2], 買進[4], 賣出[5]
+            if (cols.length >= 6) {
+                processRow(cols[2], cols[4], cols[5], brokerMap);
+            }
+            // 右半邊：券商[7], 買進[9], 賣出[10]
+            if (cols.length >= 11) {
+                processRow(cols[7], cols[9], cols[10], brokerMap);
+            }
+        });
 
-  const btn = document.getElementById('fetchBtn');
-  btn.disabled = true;
-  setStatus('loading', '查詢中…');
-  document.getElementById('summaryStrip').style.display = 'none';
-  document.getElementById('tablesWrap').innerHTML = renderSkeleton();
+        // 轉換為陣列並計算買賣超
+        let resultArr = Object.keys(brokerMap).map(name => {
+            const d = brokerMap[name];
+            const net = Math.round((d.buy - d.sell) / 1000);
+            return {
+                name: name,
+                buy: Math.round(d.buy / 1000),
+                sell: Math.round(d.sell / 1000),
+                net: net
+            };
+        }).filter(item => item.name && item.name !== "券商" && item.name !== "序號" && isNaN(item.name));
 
-  const dateFormatted = dateVal.replace(/-/g, ''); // YYYYMMDD
-  const url = `${GAS_URL}?date=${dateFormatted}&stock=7769`;
+        // 排序
+        const buyList = resultArr.filter(i => i.net > 0).sort((a, b) => b.net - a.net).slice(0, 10);
+        const sellList = resultArr.filter(i => i.net < 0).sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).slice(0, 10);
 
-  try {
-    const res = await fetch(url);
-    const json = await res.json();
+        renderTable('buy-body', buyList, 'up');
+        renderTable('sell-body', sellList, 'down');
 
-    if (json.error) throw new Error(json.error);
+        document.getElementById('result').style.display = 'grid';
+        document.getElementById('status').innerText = "分析完成！";
+    }
 
-    renderTable(json, dateVal);
-    setStatus('ok', `資料來源：TWSE｜更新：${new Date().toLocaleTimeString('zh-TW')}`);
-    document.getElementById('currentDateLabel').textContent = dateVal + ' 買賣超前十名';
-  } catch (e) {
-    setStatus('err', '查詢失敗：' + e.message);
-    document.getElementById('tablesWrap').innerHTML =
-      '<div class="empty-msg">⚠ ' + e.message + '</div>';
-  } finally {
-    btn.disabled = false;
-  }
-}
+    function processRow(name, buy, sell, map) {
+        if (!name) return;
+        const brokerName = name.trim();
+        
+        // 過濾掉標題列或無效名稱
+        if (brokerName === "" || brokerName === "券商" || !isNaN(brokerName)) return;
 
-function renderSkeleton() {
-  const row = '<tr><td colspan="3"><div class="skeleton"></div></td></tr>';
-  return `
-    <div class="table-section">
-      <div class="section-header">
-        <div class="section-dot buy"></div>
-        <div class="section-title buy">買超前十名</div>
-      </div>
-      <table><tbody>${row.repeat(5)}</tbody></table>
-    </div>
-    <div class="table-section">
-      <div class="section-header">
-        <div class="section-dot sell"></div>
-        <div class="section-title sell">賣超前十名</div>
-      </div>
-      <table><tbody>${row.repeat(5)}</tbody></table>
-    </div>`;
-}
+        const bQty = parseFloat(buy) || 0;
+        const sQty = parseFloat(sell) || 0;
 
-function renderTable(data, dateVal) {
-  const buyList = (data.buy || []).slice(0, 10);
-  const sellList = (data.sell || []).slice(0, 10);
+        if (!map[brokerName]) {
+            map[brokerName] = { buy: 0, sell: 0 };
+        }
+        map[brokerName].buy += bQty;
+        map[brokerName].sell += sQty;
+    }
 
-  const sumBuy = buyList.reduce((s, r) => s + (r.shares || 0), 0);
-  const sumSell = sellList.reduce((s, r) => s + (r.shares || 0), 0);
-  const net = sumBuy - sumSell;
-
-  document.getElementById('sumBuy').textContent = fmtThousands(Math.round(sumBuy / 1000));
-  document.getElementById('sumSell').textContent = fmtThousands(Math.round(sumSell / 1000));
-  const netEl = document.getElementById('sumNet');
-  netEl.textContent = (net >= 0 ? '+' : '') + fmtThousands(Math.round(net / 1000));
-  netEl.className = 'value ' + (net >= 0 ? 'net-pos' : 'net-neg');
-  document.getElementById('summaryStrip').style.display = 'grid';
-
-  const maxBuy = Math.max(...buyList.map(r => r.shares || 0), 1);
-  const maxSell = Math.max(...sellList.map(r => r.shares || 0), 1);
-
-  function buildRows(list, type, maxVal) {
-    if (!list.length) return '<tr><td colspan="3" style="text-align:center;color:#6b7a96;padding:20px">無資料</td></tr>';
-    return list.map((r, i) => {
-      const pct = Math.round((r.shares / maxVal) * 100);
-      return `
-        <tr>
-          <td class="rank-cell">${String(i + 1).padStart(2, '0')}</td>
-          <td class="broker-cell">
-            ${r.broker}
-            <div class="bar-wrap"><div class="bar-fill ${type}" style="width:${pct}%"></div></div>
-          </td>
-          <td class="amount-cell ${type}">${fmtThousands(Math.round((r.shares || 0) / 1000))}</td>
-        </tr>`;
-    }).join('');
-  }
-
-  document.getElementById('tablesWrap').innerHTML = `
-    <div class="table-section">
-      <div class="section-header">
-        <div class="section-dot buy"></div>
-        <div class="section-title buy">買超前十名</div>
-      </div>
-      <table>
-        <thead><tr><th>#</th><th>券商</th><th>千股</th></tr></thead>
-        <tbody>${buildRows(buyList, 'buy', maxBuy)}</tbody>
-      </table>
-    </div>
-    <div class="table-section">
-      <div class="section-header">
-        <div class="section-dot sell"></div>
-        <div class="section-title sell">賣超前十名</div>
-      </div>
-      <table>
-        <thead><tr><th>#</th><th>券商</th><th>千股</th></tr></thead>
-        <tbody>${buildRows(sellList, 'sell', maxSell)}</tbody>
-      </table>
-    </div>`;
-}
-
-// 按 Enter 也可觸發查詢
-document.getElementById('dateInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') fetchData();
-});
+    function renderTable(id, list, css) {
+        const tbody = document.getElementById(id);
+        tbody.innerHTML = list.map(item => `
+            <tr>
+                <td style="text-align:left">${item.name}</td>
+                <td style="color:#888; font-size:11px;">${item.buy} / ${item.sell}</td>
+                <td class="${css}">${Math.abs(item.net)}</td>
+            </tr>
+        `).join('');
+    }
 </script>
 
 </body>
