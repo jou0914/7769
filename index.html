@@ -4,64 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7769 鴻勁 - 籌碼分析工具</title>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- 換一個更穩定的 CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --buy-red: #ef5350; --sell-green: #66bb6a; --bg: #f4f7f9; }
-        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: var(--bg); padding: 20px; margin: 0; }
+        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: var(--bg); padding: 15px; margin: 0; }
         
-        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: relative; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        .action-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap; }
-        .btn { padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; transition: 0.3s; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
+        .action-bar { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn { padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
         
         .btn-link { background: #2c3e50; color: white; }
         .btn-upload { background: #007bff; color: white; position: relative; }
-        .btn-copy { background: #673ab7; color: white; } /* 複製按鈕紫色 */
+        .btn-screenshot { background: #673ab7; color: white; }
         
-        .btn:hover { opacity: 0.9; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
         input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
-        .summary { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-weight: bold; border: 1px solid #eee; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .summary { display: flex; justify-content: center; gap: 20px; margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 10px; font-weight: bold; border: 1px solid #eee; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         
-        table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
-        th, td { border: 1px solid #eee; padding: 12px 8px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; }
+        th, td { border: 1px solid #eee; padding: 10px 5px; text-align: center; }
         th { background: #f8f9fa; color: #555; }
         .buy-head { background: var(--buy-red) !important; color: white; }
         .sell-head { background: var(--sell-green) !important; color: white; }
         .up { color: #d20000; font-weight: bold; }
         .down { color: #008000; font-weight: bold; }
         
-        #status { text-align: center; margin-bottom: 10px; color: #666; font-size: 14px; }
-        
-        /* 提示訊息樣式 */
-        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px; display: none; z-index: 1000; }
+        #status { text-align: center; margin-bottom: 10px; color: #666; font-size: 13px; }
 
-        @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
+        /* 彈出視窗樣式 */
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 20px; box-sizing: border-box; }
+        #previewImg { max-width: 100%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .overlay-tip { color: white; margin-bottom: 15px; text-align: center; font-weight: bold; }
+        .close-btn { margin-top: 20px; background: white; color: black; padding: 10px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
 <div class="container" id="captureArea">
-    <h2 style="text-align:center; margin-top:0;">7769 鴻勁 - 籌碼分析工具</h2>
+    <h2 style="text-align:center; margin-top:0; font-size: 20px;">7769 鴻勁 - 籌碼分析工具</h2>
     
     <div class="action-bar" data-html2canvas-ignore>
         <a href="https://bsr.twse.com.tw/bshtm/" target="_blank" class="btn btn-link">🔗 開啟證交所</a>
         
         <div class="btn btn-upload">
-            📁 選擇 CSV 檔案
+            📁 選擇 CSV
             <input type="file" id="csvFile" accept=".csv">
         </div>
 
-        <button onclick="copyScreenshot()" id="copyBtn" class="btn btn-copy">📋 截圖至剪貼簿</button>
+        <button onclick="generatePreview()" id="shotBtn" class="btn btn-screenshot">📸 產生截圖</button>
     </div>
 
     <div id="status">請先下載 CSV 檔案後上傳</div>
 
     <div id="summary-info" class="summary" style="display:none;">
-        <span style="color:var(--buy-red)">總買進：<span id="total-buy">0</span> 張</span>
-        <span style="color:var(--sell-green)">總賣出：<span id="total-sell">0</span> 張</span>
+        <span style="color:var(--buy-red)">買進：<span id="total-buy">0</span></span>
+        <span style="color:var(--sell-green)">賣出：<span id="total-sell">0</span></span>
     </div>
 
     <div id="result" class="grid" style="display:none;">
@@ -69,7 +71,7 @@
             <table>
                 <thead>
                     <tr><th colspan="3" class="buy-head">買超前十名 (張)</th></tr>
-                    <tr><th>券商分點</th><th>買/賣</th><th>買超</th></tr>
+                    <tr><th>券商</th><th>買/賣</th><th>買超</th></tr>
                 </thead>
                 <tbody id="buy-body"></tbody>
             </table>
@@ -78,7 +80,7 @@
             <table>
                 <thead>
                     <tr><th colspan="3" class="sell-head">賣超前十名 (張)</th></tr>
-                    <tr><th>券商分點</th><th>買/賣</th><th>賣超</th></tr>
+                    <tr><th>券商</th><th>買/賣</th><th>賣超</th></tr>
                 </thead>
                 <tbody id="sell-body"></tbody>
             </table>
@@ -86,50 +88,53 @@
     </div>
 </div>
 
-<div id="toast">已複製到剪貼簿！</div>
+<!-- 截圖預覽層 -->
+<div id="overlay">
+    <div class="overlay-tip">截圖已產生！<br>請「長按圖片」選擇拷貝或儲存</div>
+    <img id="previewImg" src="" alt="截圖預覽">
+    <div class="close-btn" onclick="closeOverlay()">關閉預覽</div>
+</div>
 
 <script>
-    // --- 截圖並複製到剪貼簿 ---
-    async function copyScreenshot() {
-        const btn = document.getElementById('copyBtn');
-        const toast = document.getElementById('toast');
-        const originalText = btn.innerHTML;
+    // --- 產生預覽圖 ---
+    async function generatePreview() {
+        const btn = document.getElementById('shotBtn');
+        const overlay = document.getElementById('overlay');
+        const previewImg = document.getElementById('previewImg');
 
         try {
-            btn.disabled = true;
             btn.innerText = "⏳ 處理中...";
+            btn.disabled = true;
+
+            // 稍微延遲確保 UI 已更新
+            await new Promise(r => setTimeout(r, 100));
 
             const canvas = await html2canvas(document.querySelector("#captureArea"), {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: "#ffffff"
+                backgroundColor: "#ffffff",
+                logging: false
             });
 
-            // 將 canvas 轉為 Blob
-            canvas.toBlob(async (blob) => {
-                try {
-                    const data = [new ClipboardItem({ [blob.type]: blob })];
-                    await navigator.clipboard.write(data);
-                    
-                    // 成功回饋
-                    btn.innerHTML = "✅ 已複製";
-                    toast.style.display = "block";
-                    setTimeout(() => {
-                        toast.style.display = "none";
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                    }, 2000);
-                } catch (err) {
-                    throw new Error("剪貼簿寫入失敗");
-                }
-            }, "image/png");
-
+            // 將 Canvas 轉為 DataURL (Base64)
+            const dataUrl = canvas.toDataURL("image/png");
+            previewImg.src = dataUrl;
+            
+            // 顯示預覽層
+            overlay.style.display = "flex";
+            
+            btn.innerText = "📸 產生截圖";
+            btn.disabled = false;
         } catch (err) {
             console.error(err);
-            alert("複製失敗！請確保網頁在 HTTPS 環境下執行，或嘗試手動截圖。");
-            btn.innerHTML = originalText;
+            alert("截圖失敗，請確認是否已上傳資料。");
+            btn.innerText = "📸 產生截圖";
             btn.disabled = false;
         }
+    }
+
+    function closeOverlay() {
+        document.getElementById('overlay').style.display = "none";
     }
 
     // --- CSV 解析功能 ---
@@ -185,8 +190,8 @@
         const buyList = resultArr.filter(i => i.net > 0).sort((a, b) => b.net - a.net).slice(0, 10);
         const sellList = resultArr.filter(i => i.net < 0).sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).slice(0, 10);
 
-        document.getElementById('total-buy').innerText = Math.round(totalBuyQty / 1000);
-        document.getElementById('total-sell').innerText = Math.round(totalSellQty / 1000);
+        document.getElementById('total-buy').innerText = Math.round(totalBuyQty / 1000) + " 張";
+        document.getElementById('total-sell').innerText = Math.round(totalSellQty / 1000) + " 張";
         document.getElementById('summary-info').style.display = 'flex';
 
         renderTable('buy-body', buyList, 'up');
@@ -214,7 +219,7 @@
         document.getElementById(id).innerHTML = list.map(item => `
             <tr>
                 <td style="text-align:left">${item.name}</td>
-                <td style="color:#888; font-size:11px;">${item.buy} / ${item.sell}</td>
+                <td style="color:#888; font-size:11px;">${item.buy}/${item.sell}</td>
                 <td class="${css}">${Math.abs(item.net)}</td>
             </tr>
         `).join('');
