@@ -4,23 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7769 鴻勁 - 籌碼分析工具</title>
-    <!-- 載入截圖套件 -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --buy-red: #ef5350; --sell-green: #66bb6a; --bg: #f4f7f9; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: var(--bg); padding: 20px; margin: 0; }
         
-        /* 截圖目標區域 */
-        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: relative; }
         
         .action-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap; }
         .btn { padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; transition: 0.3s; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
         
         .btn-link { background: #2c3e50; color: white; }
         .btn-upload { background: #007bff; color: white; position: relative; }
-        .btn-screenshot { background: #673ab7; color: white; } /* 截圖按鈕紫色 */
+        .btn-copy { background: #673ab7; color: white; } /* 複製按鈕紫色 */
         
         .btn:hover { opacity: 0.9; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
         input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
         .summary { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-weight: bold; border: 1px solid #eee; }
@@ -35,6 +34,10 @@
         .down { color: #008000; font-weight: bold; }
         
         #status { text-align: center; margin-bottom: 10px; color: #666; font-size: 14px; }
+        
+        /* 提示訊息樣式 */
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px; display: none; z-index: 1000; }
+
         @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -43,7 +46,6 @@
 <div class="container" id="captureArea">
     <h2 style="text-align:center; margin-top:0;">7769 鴻勁 - 籌碼分析工具</h2>
     
-    <!-- 功能按鈕區 (截圖時會自動隱藏或保留，視需求而定) -->
     <div class="action-bar" data-html2canvas-ignore>
         <a href="https://bsr.twse.com.tw/bshtm/" target="_blank" class="btn btn-link">🔗 開啟證交所</a>
         
@@ -52,7 +54,7 @@
             <input type="file" id="csvFile" accept=".csv">
         </div>
 
-        <button onclick="takeScreenshot()" class="btn btn-screenshot">📸 一鍵截圖</button>
+        <button onclick="copyScreenshot()" id="copyBtn" class="btn btn-copy">📋 截圖至剪貼簿</button>
     </div>
 
     <div id="status">請先下載 CSV 檔案後上傳</div>
@@ -84,34 +86,50 @@
     </div>
 </div>
 
+<div id="toast">已複製到剪貼簿！</div>
+
 <script>
-    // --- 截圖功能 ---
-    function takeScreenshot() {
-        const btn = document.querySelector('.btn-screenshot');
-        btn.innerText = "正在截圖...";
-        btn.disabled = true;
+    // --- 截圖並複製到剪貼簿 ---
+    async function copyScreenshot() {
+        const btn = document.getElementById('copyBtn');
+        const toast = document.getElementById('toast');
+        const originalText = btn.innerHTML;
 
-        // 使用 html2canvas 抓取 container 區域
-        html2canvas(document.querySelector("#captureArea"), {
-            scale: 2, // 提高解析度，讓截圖更清晰
-            useCORS: true,
-            backgroundColor: "#ffffff"
-        }).then(canvas => {
-            // 建立下載連結
-            const link = document.createElement('a');
-            const date = new Date().toISOString().slice(0, 10);
-            link.download = `7769_籌碼分析_${date}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
+        try {
+            btn.disabled = true;
+            btn.innerText = "⏳ 處理中...";
 
-            btn.innerText = "📸 一鍵截圖";
+            const canvas = await html2canvas(document.querySelector("#captureArea"), {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#ffffff"
+            });
+
+            // 將 canvas 轉為 Blob
+            canvas.toBlob(async (blob) => {
+                try {
+                    const data = [new ClipboardItem({ [blob.type]: blob })];
+                    await navigator.clipboard.write(data);
+                    
+                    // 成功回饋
+                    btn.innerHTML = "✅ 已複製";
+                    toast.style.display = "block";
+                    setTimeout(() => {
+                        toast.style.display = "none";
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                } catch (err) {
+                    throw new Error("剪貼簿寫入失敗");
+                }
+            }, "image/png");
+
+        } catch (err) {
+            console.error(err);
+            alert("複製失敗！請確保網頁在 HTTPS 環境下執行，或嘗試手動截圖。");
+            btn.innerHTML = originalText;
             btn.disabled = false;
-        }).catch(err => {
-            console.error("截圖失敗:", err);
-            alert("截圖失敗，請稍後再試");
-            btn.innerText = "📸 一鍵截圖";
-            btn.disabled = false;
-        });
+        }
     }
 
     // --- CSV 解析功能 ---
