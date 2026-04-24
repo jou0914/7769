@@ -28,10 +28,10 @@
         .action-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
         .btn { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; text-decoration: none; }
         
-        .btn-link { background: #2c3e50; color: white; } /* 證交所按鈕深色 */
-        .btn-fetch { background: #28a745; color: white; } /* 同步按鈕綠色 */
-        .btn-upload { background: #007bff; color: white; position: relative; } /* 上傳按鈕藍色 */
-        .btn-screenshot { background: #6f42c1; color: white; } /* 截圖按鈕紫色 */
+        .btn-link { background: #2c3e50; color: white; }
+        .btn-fetch { background: #28a745; color: white; }
+        .btn-upload { background: #007bff; color: white; position: relative; }
+        .btn-screenshot { background: #6f42c1; color: white; }
         
         .btn:hover { opacity: 0.8; }
         input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
@@ -65,7 +65,7 @@
         </div>
         <div style="text-align: right;">
             <div id="trade-date" style="font-size: 13px; color: var(--text-sub); font-weight: bold;">同步中...</div>
-            <div id="sync-status" style="font-size: 10px; color: #aaa;">來源：Yahoo Finance</div>
+            <div id="sync-status" style="font-size: 10px; color: #aaa;">正在連線 Yahoo Finance</div>
         </div>
     </div>
 
@@ -82,16 +82,9 @@
     </div>
     
     <div class="action-bar" data-html2canvas-ignore>
-        <!-- 找回來的按鈕 -->
         <a href="https://bsr.twse.com.tw/bshtm/" target="_blank" class="btn btn-link">🔗 開啟證交所</a>
-        
         <button onclick="fetchYahooPrice()" class="btn btn-fetch">🔄 同步最新行情</button>
-        
-        <div class="btn btn-upload">
-            📁 上傳分點 CSV
-            <input type="file" id="csvFile" accept=".csv">
-        </div>
-        
+        <div class="btn btn-upload">📁 上傳分點 CSV<input type="file" id="csvFile" accept=".csv"></div>
         <button onclick="generatePreview()" id="shotBtn" class="btn btn-screenshot">📸 產生分享截圖</button>
     </div>
 
@@ -123,59 +116,84 @@
 </div>
 
 <script>
-    // --- 1. Yahoo Finance 行情抓取 ---
+    // --- 1. Yahoo Finance 行情抓取 (GitHub 多重代理優化版) ---
     async function fetchYahooPrice() {
         const btn = document.querySelector('.btn-fetch');
+        const dateLabel = document.getElementById('trade-date');
+        const syncStatus = document.getElementById('sync-status');
+        
         btn.innerText = "同步中...";
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/7769.TW?interval=1d&range=5d`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
+        
+        // 定義多個代理伺服器，增加在 GitHub 上的成功率
+        const proxies = [
+            (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+        ];
 
-        try {
-            const response = await fetch(proxyUrl);
-            const data = await response.json();
-            const json = JSON.parse(data.contents);
-            const result = json.chart.result[0];
-            const quote = result.indicators.quote[0];
-            const timestamps = result.timestamp;
-            const lastIdx = timestamps.length - 1;
+        let success = false;
 
-            const close = quote.close[lastIdx];
-            const open = quote.open[lastIdx];
-            const high = quote.high[lastIdx];
-            const low = quote.low[lastIdx];
-            const vol = Math.round(quote.volume[lastIdx] / 1000);
-            const prevClose = quote.close[lastIdx - 1];
-            const diff = (close - prevClose).toFixed(2);
-            const percent = ((diff / prevClose) * 100).toFixed(2);
+        for (let i = 0; i < proxies.length; i++) {
+            try {
+                const response = await fetch(proxies[i](yahooUrl));
+                if (!response.ok) throw new Error("Proxy Error");
+                
+                const data = await response.json();
+                // 處理不同代理的回傳格式
+                const json = data.contents ? JSON.parse(data.contents) : data;
+                
+                const result = json.chart.result[0];
+                const quote = result.indicators.quote[0];
+                const timestamps = result.timestamp;
+                const lastIdx = timestamps.length - 1;
 
-            const dateObj = new Date(timestamps[lastIdx] * 1000);
-            const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth()+1).padStart(2,'0')}/${String(dateObj.getDate()).padStart(2,'0')}`;
+                const close = quote.close[lastIdx];
+                const open = quote.open[lastIdx];
+                const high = quote.high[lastIdx];
+                const low = quote.low[lastIdx];
+                const vol = Math.round(quote.volume[lastIdx] / 1000);
+                const prevClose = quote.close[lastIdx - 1];
+                const diff = (close - prevClose).toFixed(2);
+                const percent = ((diff / prevClose) * 100).toFixed(2);
 
-            document.getElementById('trade-date').innerText = "日期：" + dateStr;
-            document.getElementById('cur-price').innerText = close.toFixed(2);
-            document.getElementById('p-open').innerText = open.toFixed(2);
-            document.getElementById('p-high').innerText = high.toFixed(2);
-            document.getElementById('p-low').innerText = low.toFixed(2);
-            document.getElementById('p-vol').innerText = vol + " 張";
+                const dateObj = new Date(timestamps[lastIdx] * 1000);
+                const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth()+1).padStart(2,'0')}/${String(dateObj.getDate()).padStart(2,'0')}`;
 
-            const color = diff > 0 ? 'var(--buy-red)' : (diff < 0 ? 'var(--sell-green)' : 'var(--text-main)');
-            const sign = diff > 0 ? '▲' : (diff < 0 ? '▼' : '');
-            const diffElem = document.getElementById('cur-diff');
-            diffElem.innerText = `${sign} ${Math.abs(diff)} (${percent}%)`;
-            diffElem.style.color = color;
-            document.getElementById('cur-price').style.color = color;
+                document.getElementById('trade-date').innerText = "日期：" + dateStr;
+                document.getElementById('cur-price').innerText = close.toFixed(2);
+                document.getElementById('p-open').innerText = open.toFixed(2);
+                document.getElementById('p-high').innerText = high.toFixed(2);
+                document.getElementById('p-low').innerText = low.toFixed(2);
+                document.getElementById('p-vol').innerText = vol + " 張";
 
-            btn.innerText = "同步成功";
-        } catch (e) {
+                const color = diff > 0 ? 'var(--buy-red)' : (diff < 0 ? 'var(--sell-green)' : 'var(--text-main)');
+                const sign = diff > 0 ? '▲' : (diff < 0 ? '▼' : '');
+                const diffElem = document.getElementById('cur-diff');
+                diffElem.innerText = `${sign} ${Math.abs(diff)} (${percent}%)`;
+                diffElem.style.color = color;
+                document.getElementById('cur-price').style.color = color;
+
+                syncStatus.innerText = `來源：Yahoo (Proxy ${i+1})`;
+                btn.innerText = "同步成功";
+                success = true;
+                break; 
+            } catch (e) {
+                console.warn(`代理 ${i + 1} 失敗，嘗試下一個...`);
+            }
+        }
+
+        if (!success) {
             btn.innerText = "同步失敗";
-            document.getElementById('trade-date').innerText = "行情同步失敗";
+            dateLabel.innerText = "行情同步失敗";
+            syncStatus.innerText = "所有代理均失效，請稍後再試";
         }
         setTimeout(() => { btn.innerText = "🔄 同步最新行情"; }, 2000);
     }
 
     fetchYahooPrice();
 
-    // --- 2. CSV 解析 ---
+    // --- 2. CSV 解析 (雙列式) ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -188,7 +206,7 @@
 
             lines.forEach(line => {
                 const cols = line.replace(/"/g, '').split(',');
-                // 雙列式解析
+                // 雙列式解析：左 [1,3,4], 右 [7,9,10]
                 if (cols.length >= 5) processRow(cols[1], cols[3], cols[4], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
                 if (cols.length >= 11) processRow(cols[7], cols[9], cols[10], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
             });
