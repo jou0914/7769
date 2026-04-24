@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7769 鴻勁 - 籌碼分析工具</title>
-    <!-- 載入截圖套件 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
@@ -26,7 +25,6 @@
             color: var(--text-main); 
         }
         
-        /* 主容器 */
         .container { 
             max-width: 1000px; 
             margin: auto; 
@@ -37,7 +35,6 @@
             position: relative; 
         }
         
-        /* 行情儀表板 */
         .price-dash { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
@@ -61,7 +58,6 @@
         .price-label { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
         .price-val { font-size: 16px; font-weight: 600; color: #333; }
 
-        /* 按鈕區 */
         .action-bar { 
             display: flex; 
             gap: 10px; 
@@ -82,13 +78,13 @@
             transition: 0.2s; 
             text-decoration: none;
         }
+        .btn-fetch { background: #28a745; color: white; }
         .btn-link { background: #6c757d; color: white; }
         .btn-upload { background: #007bff; color: white; position: relative; }
         .btn-screenshot { background: #6f42c1; color: white; }
         .btn:hover { opacity: 0.8; }
         input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
-        /* 表格區 */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
         th, td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; }
@@ -99,7 +95,6 @@
         .up { color: var(--buy-red); font-weight: bold; }
         .down { color: var(--sell-green); font-weight: bold; }
 
-        /* 截圖預覽層 */
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.85); display: none; 
@@ -120,13 +115,15 @@
 <body>
 
 <div class="container" id="captureArea">
-    <!-- 標題列 -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
             <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁</h2>
-            <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | 分點進出明細分析</div>
+            <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | 智慧行情與籌碼分析</div>
         </div>
-        <div id="trade-date" style="text-align: right; font-size: 13px; color: var(--text-sub); font-weight: bold;"></div>
+        <div style="text-align: right;">
+            <div id="trade-date" style="font-size: 13px; color: var(--text-sub); font-weight: bold;">同步中...</div>
+            <div id="data-source" style="font-size: 10px; color: #aaa;">來源偵測中</div>
+        </div>
     </div>
 
     <!-- 行情儀表板 -->
@@ -153,8 +150,8 @@
         </div>
     </div>
     
-    <!-- 操作按鈕 -->
     <div class="action-bar" data-html2canvas-ignore>
+        <button onclick="initDataFlow()" class="btn btn-fetch">🔄 重新同步行情</button>
         <a href="https://bsr.twse.com.tw/bshtm/" target="_blank" class="btn btn-link">🔗 證交所查詢</a>
         <div class="btn btn-upload">
             📁 上傳分點 CSV
@@ -167,7 +164,6 @@
         請上傳證交所 CSV 檔案以顯示籌碼排行
     </div>
 
-    <!-- 籌碼排行結果 -->
     <div id="result" class="grid" style="display:none;">
         <div>
             <table>
@@ -190,7 +186,6 @@
     </div>
 </div>
 
-<!-- 截圖預覽層 -->
 <div id="overlay">
     <div style="color:white; margin-bottom:15px; font-weight: bold; text-align: center;">截圖已產生！<br>請長按圖片「拷貝」或「儲存」</div>
     <img id="previewImg" src="" alt="截圖預覽">
@@ -198,45 +193,126 @@
 </div>
 
 <script>
-    // --- 1. 處理 4/23 行情數據 ---
-    const stockJson = {
-        "stat":"OK",
-        "date":"20260423",
-        "data":[
-            ["115/04/23","2,376,739","11,384,486,900","4,900.00","4,980.00","4,560.00","4,810.00","+65.00","11,554",""]
-        ]
-    };
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxi2Xm_MZ1Bak8sAIfC-MiPaHERwuqpz8eSh8yRUy5efO8sa6Mur_XJ95BHhqYtKnJ7ww/exec';
+    const STOCK_ID = '7769';
 
-    function initPriceDashboard(json) {
-        const last = json.data[json.data.length - 1];
-        const date = last[0];
-        const vol = Math.round(parseInt(last[1].replace(/,/g,'')) / 1000);
-        const open = last[3];
-        const high = last[4];
-        const low = last[5];
-        const close = last[6];
-        const diffText = last[7];
-        const diffVal = parseFloat(diffText);
+    // --- 1. 智慧雙重抓取邏輯 ---
+    async function initDataFlow() {
+        const sourceLabel = document.getElementById('data-source');
+        const dateLabel = document.getElementById('trade-date');
         
-        const prevClose = parseFloat(close.replace(/,/g,'')) - diffVal;
-        const percent = ((diffVal / prevClose) * 100).toFixed(2);
+        // 取得今天日期的民國格式 (例如 115/04/24)
+        const now = new Date();
+        const todayMinguo = `${now.getFullYear() - 1911}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+
+        // 優先嘗試 1: 證交所 API
+        sourceLabel.innerText = "正在嘗試證交所直連...";
+        let twseData = await fetchLatestPrice();
+
+        if (twseData) {
+            // 檢查日期是否為今天
+            if (twseData.date === todayMinguo) {
+                updateDashboard(twseData);
+                sourceLabel.innerText = "來源：證交所官方 (今日數據)";
+                return;
+            } else {
+                console.log("證交所僅有舊資料，嘗試 GAS 備援...");
+            }
+        }
+
+        // 如果抓不到或抓到昨天的，嘗試 2: GAS 雲端
+        sourceLabel.innerText = "證交所無今日資料，切換 GAS 備援...";
+        let gasData = await fetchFromGAS();
+        
+        if (gasData) {
+            updateDashboard(gasData);
+            sourceLabel.innerText = "來源：GAS 雲端備援";
+        } else if (twseData) {
+            // 如果 GAS 也失敗，但至少有證交所的舊資料，就顯示舊的
+            updateDashboard(twseData);
+            sourceLabel.innerText = "來源：證交所官方 (僅有舊資料)";
+        } else {
+            dateLabel.innerText = "行情同步失敗";
+            sourceLabel.innerText = "請檢查網路連線";
+        }
+    }
+
+    // 抓取證交所
+    async function fetchLatestPrice() {
+        const targetUrl = `https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY?stockNo=${STOCK_ID}&response=json&_=${Date.now()}`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        try {
+            const response = await fetch(proxyUrl);
+            const data = await response.json();
+            const json = JSON.parse(data.contents);
+            if (json.stat === "OK" && json.data) {
+                const last = json.data[json.data.length - 1];
+                return {
+                    date: last[0],
+                    vol: Math.round(parseInt(last[1].replace(/,/g,'')) / 1000),
+                    open: last[3],
+                    high: last[4],
+                    low: last[5],
+                    close: last[6],
+                    diff: last[7]
+                };
+            }
+        } catch (e) { return null; }
+        return null;
+    }
+
+    // 抓取 GAS
+    async function fetchFromGAS() {
+        try {
+            const response = await fetch(GAS_URL);
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                const last = data.data[data.data.length - 1];
+                return {
+                    date: last[0],
+                    vol: Math.round(parseInt(last[1].replace(/,/g,'')) / 1000),
+                    open: last[3],
+                    high: last[4],
+                    low: last[5],
+                    close: last[6],
+                    diff: last[7]
+                };
+            } else {
+                // 處理 Yahoo 格式或其他單一價格格式
+                let price = data.chart?.result[0]?.meta?.regularMarketPrice || data.price || data;
+                if (price && !isNaN(price)) {
+                    return { date: "即時行情", close: price, diff: "0", open: "--", high: "--", low: "--", vol: "--" };
+                }
+            }
+        } catch (e) { return null; }
+        return null;
+    }
+
+    function updateDashboard(info) {
+        const close = info.close;
+        const diffText = info.diff.toString();
+        const diffVal = parseFloat(diffText.replace('+', '').replace('X', '0'));
+        
+        const prevClose = parseFloat(close.toString().replace(/,/g,'')) - diffVal;
+        const percent = prevClose !== 0 ? ((diffVal / prevClose) * 100).toFixed(2) : "0.00";
         
         const color = diffVal > 0 ? 'var(--buy-red)' : (diffVal < 0 ? 'var(--sell-green)' : 'var(--text-main)');
         const sign = diffVal > 0 ? '▲' : (diffVal < 0 ? '▼' : '');
 
-        document.getElementById('trade-date').innerText = "日期：" + date;
+        document.getElementById('trade-date').innerText = "日期：" + info.date;
         document.getElementById('cur-price').innerText = close;
         document.getElementById('cur-price').style.color = color;
         document.getElementById('cur-diff').innerText = `${sign} ${Math.abs(diffVal)} (${percent}%)`;
         document.getElementById('cur-diff').style.color = color;
         
-        document.getElementById('p-open').innerText = open;
-        document.getElementById('p-high').innerText = high;
-        document.getElementById('p-low').innerText = low;
-        document.getElementById('p-vol').innerText = vol + " 張";
+        document.getElementById('p-open').innerText = info.open;
+        document.getElementById('p-high').innerText = info.high;
+        document.getElementById('p-low').innerText = info.low;
+        document.getElementById('p-vol').innerText = info.vol + (info.vol !== "--" ? " 張" : "");
     }
 
-    initPriceDashboard(stockJson);
+    // 初始執行
+    initDataFlow();
 
     // --- 2. 處理 CSV 解析 ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
