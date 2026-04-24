@@ -4,112 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7769 鴻勁 - 籌碼分析工具</title>
+    <!-- 載入截圖套件 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
-            --buy-red: #d20000; 
-            --sell-green: #008000; 
-            --bg: #f0f2f5; 
-            --card-bg: #ffffff; 
-            --border: #e1e4e8;
-            --text-main: #1a1a1a;
-            --text-sub: #666666;
-            --accent: #007bff;
+            --buy-red: #d20000; --sell-green: #008000; --bg: #f0f2f5; 
+            --card-bg: #ffffff; --border: #e1e4e8; --text-main: #1a1a1a;
+            --text-sub: #666666; --accent: #007bff;
         }
+        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: var(--bg); padding: 15px; margin: 0; color: var(--text-main); }
+        .container { max-width: 1000px; margin: auto; background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; }
         
-        body { 
-            font-family: -apple-system, "Microsoft JhengHei", sans-serif; 
-            background: var(--bg); 
-            padding: 15px; 
-            margin: 0; 
-            color: var(--text-main); 
-        }
-        
-        .container { 
-            max-width: 1000px; 
-            margin: auto; 
-            background: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 15px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
-            position: relative; 
-        }
-        
-        .price-dash { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
-            gap: 15px; 
-            background: #f8f9fa; 
-            padding: 20px; 
-            border-radius: 12px; 
-            margin-bottom: 25px; 
-            border: 1px solid var(--border);
-        }
-        .price-main { 
-            grid-column: span 2; 
-            display: flex; 
-            flex-direction: column;
-            justify-content: center;
-        }
-        .current-price { font-size: 38px; font-weight: 800; line-height: 1; color: var(--text-main); }
+        /* 行情儀表板 */
+        .price-dash { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); }
+        .price-main { grid-column: span 2; display: flex; flex-direction: column; justify-content: center; }
+        .current-price { font-size: 38px; font-weight: 800; line-height: 1; }
         .price-diff { font-size: 16px; font-weight: 600; margin-top: 5px; }
-        
         .price-item { display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #ddd; padding-left: 15px; }
         .price-label { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
         .price-val { font-size: 16px; font-weight: 600; color: #333; }
 
-        .action-bar { 
-            display: flex; 
-            gap: 10px; 
-            justify-content: center; 
-            margin-bottom: 20px; 
-            flex-wrap: wrap; 
-        }
-        .btn { 
-            padding: 10px 20px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            border: none; 
-            font-size: 13px; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 6px; 
-            transition: 0.2s; 
-            text-decoration: none;
-        }
-        .btn-fetch { background: #28a745; color: white; }
-        .btn-link { background: #6c757d; color: white; }
-        .btn-upload { background: #007bff; color: white; position: relative; }
-        .btn-screenshot { background: #6f42c1; color: white; }
+        /* 按鈕區 */
+        .action-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; text-decoration: none; }
+        
+        .btn-link { background: #2c3e50; color: white; } /* 證交所按鈕深色 */
+        .btn-fetch { background: #28a745; color: white; } /* 同步按鈕綠色 */
+        .btn-upload { background: #007bff; color: white; position: relative; } /* 上傳按鈕藍色 */
+        .btn-screenshot { background: #6f42c1; color: white; } /* 截圖按鈕紫色 */
+        
         .btn:hover { opacity: 0.8; }
         input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
+        /* 統計與表格 */
+        .summary { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-weight: bold; border: 1px solid #eee; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
         th, td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; }
         th { background: #f1f3f5; color: #555; font-weight: 600; }
-        
         .buy-head { background: #fff1f0 !important; color: var(--buy-red); border-top: 3px solid var(--buy-red); }
         .sell-head { background: #f6ffed !important; color: var(--sell-green); border-top: 3px solid var(--sell-green); }
         .up { color: var(--buy-red); font-weight: bold; }
         .down { color: var(--sell-green); font-weight: bold; }
 
-        #overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: none; 
-            flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 9999; padding: 20px; 
-        }
+        /* 截圖預覽層 */
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
         #previewImg { max-width: 100%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
         .close-btn { margin-top: 20px; background: white; color: black; padding: 10px 40px; border-radius: 25px; cursor: pointer; font-weight: bold; }
 
-        @media (max-width: 600px) { 
-            .grid { grid-template-columns: 1fr; } 
-            .price-main { grid-column: span 1; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-            .price-item { border-left: none; padding-left: 0; }
-            .current-price { font-size: 32px; }
-        }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } .price-main { grid-column: span 1; border-bottom: 1px solid #eee; padding-bottom: 10px; } .price-item { border-left: none; padding-left: 0; } .current-price { font-size: 32px; } }
     </style>
 </head>
 <body>
@@ -118,11 +61,11 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
             <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁</h2>
-            <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | 智慧行情與籌碼分析</div>
+            <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | 行情與籌碼分析</div>
         </div>
         <div style="text-align: right;">
             <div id="trade-date" style="font-size: 13px; color: var(--text-sub); font-weight: bold;">同步中...</div>
-            <div id="data-source" style="font-size: 10px; color: #aaa;">來源偵測中</div>
+            <div id="sync-status" style="font-size: 10px; color: #aaa;">來源：Yahoo Finance</div>
         </div>
     </div>
 
@@ -132,54 +75,41 @@
             <div id="cur-price" class="current-price">----</div>
             <div id="cur-diff" class="price-diff">-- ( --% )</div>
         </div>
-        <div class="price-item">
-            <span class="price-label">開盤</span>
-            <span id="p-open" class="price-val">--</span>
-        </div>
-        <div class="price-item">
-            <span class="price-label">最高</span>
-            <span id="p-high" class="price-val">--</span>
-        </div>
-        <div class="price-item">
-            <span class="price-label">最低</span>
-            <span id="p-low" class="price-val">--</span>
-        </div>
-        <div class="price-item">
-            <span class="price-label">成交量</span>
-            <span id="p-vol" class="price-val">--</span>
-        </div>
+        <div class="price-item"><span class="price-label">開盤</span><span id="p-open" class="price-val">--</span></div>
+        <div class="price-item"><span class="price-label">最高</span><span id="p-high" class="price-val">--</span></div>
+        <div class="price-item"><span class="price-label">最低</span><span id="p-low" class="price-val">--</span></div>
+        <div class="price-item"><span class="price-label">成交量</span><span id="p-vol" class="price-val">--</span></div>
     </div>
     
     <div class="action-bar" data-html2canvas-ignore>
-        <button onclick="initDataFlow()" class="btn btn-fetch">🔄 重新同步行情</button>
-        <a href="https://bsr.twse.com.tw/bshtm/" target="_blank" class="btn btn-link">🔗 證交所查詢</a>
+        <!-- 找回來的按鈕 -->
+        <a href="https://bsr.twse.com.tw/bshtm/" target="_blank" class="btn btn-link">🔗 開啟證交所</a>
+        
+        <button onclick="fetchYahooPrice()" class="btn btn-fetch">🔄 同步最新行情</button>
+        
         <div class="btn btn-upload">
             📁 上傳分點 CSV
             <input type="file" id="csvFile" accept=".csv">
         </div>
+        
         <button onclick="generatePreview()" id="shotBtn" class="btn btn-screenshot">📸 產生分享截圖</button>
     </div>
 
-    <div id="status" style="text-align: center; font-size: 13px; color: #999; margin-bottom: 15px;" data-html2canvas-ignore>
-        請上傳證交所 CSV 檔案以顯示籌碼排行
+    <div id="summary-info" class="summary" style="display:none;">
+        <span style="color:var(--buy-red)">總買進：<span id="total-buy">0</span> 張</span>
+        <span style="color:var(--sell-green)">總賣出：<span id="total-sell">0</span> 張</span>
     </div>
 
     <div id="result" class="grid" style="display:none;">
         <div>
             <table>
-                <thead>
-                    <tr><th colspan="3" class="buy-head">買超前十名 (張)</th></tr>
-                    <tr><th>券商分點</th><th>買/賣</th><th>買超</th></tr>
-                </thead>
+                <thead><tr><th colspan="3" class="buy-head">買超前十名 (張)</th></tr></thead>
                 <tbody id="buy-body"></tbody>
             </table>
         </div>
         <div>
             <table>
-                <thead>
-                    <tr><th colspan="3" class="sell-head">賣超前十名 (張)</th></tr>
-                    <tr><th>券商分點</th><th>買/賣</th><th>賣超</th></tr>
-                </thead>
+                <thead><tr><th colspan="3" class="sell-head">賣超前十名 (張)</th></tr></thead>
                 <tbody id="sell-body"></tbody>
             </table>
         </div>
@@ -193,209 +123,112 @@
 </div>
 
 <script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxi2Xm_MZ1Bak8sAIfC-MiPaHERwuqpz8eSh8yRUy5efO8sa6Mur_XJ95BHhqYtKnJ7ww/exec';
-    const STOCK_ID = '7769';
+    // --- 1. Yahoo Finance 行情抓取 ---
+    async function fetchYahooPrice() {
+        const btn = document.querySelector('.btn-fetch');
+        btn.innerText = "同步中...";
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/7769.TW?interval=1d&range=5d`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
 
-    // --- 1. 智慧雙重抓取邏輯 ---
-    async function initDataFlow() {
-        const sourceLabel = document.getElementById('data-source');
-        const dateLabel = document.getElementById('trade-date');
-        
-        // 取得今天日期的民國格式 (例如 115/04/24)
-        const now = new Date();
-        const todayMinguo = `${now.getFullYear() - 1911}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-
-        // 優先嘗試 1: 證交所 API
-        sourceLabel.innerText = "正在嘗試證交所直連...";
-        let twseData = await fetchLatestPrice();
-
-        if (twseData) {
-            // 檢查日期是否為今天
-            if (twseData.date === todayMinguo) {
-                updateDashboard(twseData);
-                sourceLabel.innerText = "來源：證交所官方 (今日數據)";
-                return;
-            } else {
-                console.log("證交所僅有舊資料，嘗試 GAS 備援...");
-            }
-        }
-
-        // 如果抓不到或抓到昨天的，嘗試 2: GAS 雲端
-        sourceLabel.innerText = "證交所無今日資料，切換 GAS 備援...";
-        let gasData = await fetchFromGAS();
-        
-        if (gasData) {
-            updateDashboard(gasData);
-            sourceLabel.innerText = "來源：GAS 雲端備援";
-        } else if (twseData) {
-            // 如果 GAS 也失敗，但至少有證交所的舊資料，就顯示舊的
-            updateDashboard(twseData);
-            sourceLabel.innerText = "來源：證交所官方 (僅有舊資料)";
-        } else {
-            dateLabel.innerText = "行情同步失敗";
-            sourceLabel.innerText = "請檢查網路連線";
-        }
-    }
-
-    // 抓取證交所
-    async function fetchLatestPrice() {
-        const targetUrl = `https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY?stockNo=${STOCK_ID}&response=json&_=${Date.now()}`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
         try {
             const response = await fetch(proxyUrl);
             const data = await response.json();
             const json = JSON.parse(data.contents);
-            if (json.stat === "OK" && json.data) {
-                const last = json.data[json.data.length - 1];
-                return {
-                    date: last[0],
-                    vol: Math.round(parseInt(last[1].replace(/,/g,'')) / 1000),
-                    open: last[3],
-                    high: last[4],
-                    low: last[5],
-                    close: last[6],
-                    diff: last[7]
-                };
-            }
-        } catch (e) { return null; }
-        return null;
+            const result = json.chart.result[0];
+            const quote = result.indicators.quote[0];
+            const timestamps = result.timestamp;
+            const lastIdx = timestamps.length - 1;
+
+            const close = quote.close[lastIdx];
+            const open = quote.open[lastIdx];
+            const high = quote.high[lastIdx];
+            const low = quote.low[lastIdx];
+            const vol = Math.round(quote.volume[lastIdx] / 1000);
+            const prevClose = quote.close[lastIdx - 1];
+            const diff = (close - prevClose).toFixed(2);
+            const percent = ((diff / prevClose) * 100).toFixed(2);
+
+            const dateObj = new Date(timestamps[lastIdx] * 1000);
+            const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth()+1).padStart(2,'0')}/${String(dateObj.getDate()).padStart(2,'0')}`;
+
+            document.getElementById('trade-date').innerText = "日期：" + dateStr;
+            document.getElementById('cur-price').innerText = close.toFixed(2);
+            document.getElementById('p-open').innerText = open.toFixed(2);
+            document.getElementById('p-high').innerText = high.toFixed(2);
+            document.getElementById('p-low').innerText = low.toFixed(2);
+            document.getElementById('p-vol').innerText = vol + " 張";
+
+            const color = diff > 0 ? 'var(--buy-red)' : (diff < 0 ? 'var(--sell-green)' : 'var(--text-main)');
+            const sign = diff > 0 ? '▲' : (diff < 0 ? '▼' : '');
+            const diffElem = document.getElementById('cur-diff');
+            diffElem.innerText = `${sign} ${Math.abs(diff)} (${percent}%)`;
+            diffElem.style.color = color;
+            document.getElementById('cur-price').style.color = color;
+
+            btn.innerText = "同步成功";
+        } catch (e) {
+            btn.innerText = "同步失敗";
+            document.getElementById('trade-date').innerText = "行情同步失敗";
+        }
+        setTimeout(() => { btn.innerText = "🔄 同步最新行情"; }, 2000);
     }
 
-    // 抓取 GAS
-    async function fetchFromGAS() {
-        try {
-            const response = await fetch(GAS_URL);
-            const data = await response.json();
-            if (data.data && data.data.length > 0) {
-                const last = data.data[data.data.length - 1];
-                return {
-                    date: last[0],
-                    vol: Math.round(parseInt(last[1].replace(/,/g,'')) / 1000),
-                    open: last[3],
-                    high: last[4],
-                    low: last[5],
-                    close: last[6],
-                    diff: last[7]
-                };
-            } else {
-                // 處理 Yahoo 格式或其他單一價格格式
-                let price = data.chart?.result[0]?.meta?.regularMarketPrice || data.price || data;
-                if (price && !isNaN(price)) {
-                    return { date: "即時行情", close: price, diff: "0", open: "--", high: "--", low: "--", vol: "--" };
-                }
-            }
-        } catch (e) { return null; }
-        return null;
-    }
+    fetchYahooPrice();
 
-    function updateDashboard(info) {
-        const close = info.close;
-        const diffText = info.diff.toString();
-        const diffVal = parseFloat(diffText.replace('+', '').replace('X', '0'));
-        
-        const prevClose = parseFloat(close.toString().replace(/,/g,'')) - diffVal;
-        const percent = prevClose !== 0 ? ((diffVal / prevClose) * 100).toFixed(2) : "0.00";
-        
-        const color = diffVal > 0 ? 'var(--buy-red)' : (diffVal < 0 ? 'var(--sell-green)' : 'var(--text-main)');
-        const sign = diffVal > 0 ? '▲' : (diffVal < 0 ? '▼' : '');
-
-        document.getElementById('trade-date').innerText = "日期：" + info.date;
-        document.getElementById('cur-price').innerText = close;
-        document.getElementById('cur-price').style.color = color;
-        document.getElementById('cur-diff').innerText = `${sign} ${Math.abs(diffVal)} (${percent}%)`;
-        document.getElementById('cur-diff').style.color = color;
-        
-        document.getElementById('p-open').innerText = info.open;
-        document.getElementById('p-high').innerText = info.high;
-        document.getElementById('p-low').innerText = info.low;
-        document.getElementById('p-vol').innerText = info.vol + (info.vol !== "--" ? " 張" : "");
-    }
-
-    // 初始執行
-    initDataFlow();
-
-    // --- 2. 處理 CSV 解析 ---
+    // --- 2. CSV 解析 ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.readAsText(file, 'Big5');
         reader.onload = function(event) {
-            parseTwseCsv(event.target.result);
+            const lines = event.target.result.split('\n');
+            const brokerMap = {};
+            let totalBuy = 0, totalSell = 0;
+
+            lines.forEach(line => {
+                const cols = line.replace(/"/g, '').split(',');
+                // 雙列式解析
+                if (cols.length >= 5) processRow(cols[1], cols[3], cols[4], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
+                if (cols.length >= 11) processRow(cols[7], cols[9], cols[10], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
+            });
+
+            const resultArr = Object.keys(brokerMap).map(name => {
+                const d = brokerMap[name];
+                return { name: name.replace(/^\d{4}\s*/, ''), buy: Math.round(d.buy/1000), sell: Math.round(d.sell/1000), net: Math.round((d.buy-d.sell)/1000) };
+            });
+
+            document.getElementById('total-buy').innerText = Math.round(totalBuy/1000);
+            document.getElementById('total-sell').innerText = Math.round(totalSell/1000);
+            document.getElementById('summary-info').style.display = 'flex';
+
+            const buyList = resultArr.filter(i=>i.net>0).sort((a,b)=>b.net-a.net).slice(0,10);
+            const sellList = resultArr.filter(i=>i.net<0).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net)).slice(0,10);
+
+            document.getElementById('buy-body').innerHTML = buyList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="up">${i.net}</td></tr>`).join('');
+            document.getElementById('sell-body').innerHTML = sellList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="down">${Math.abs(i.net)}</td></tr>`).join('');
+            document.getElementById('result').style.display = 'grid';
         };
     });
 
-    function parseTwseCsv(text) {
-        const lines = text.split('\n');
-        const brokerMap = {};
-        lines.forEach(line => {
-            const cols = line.replace(/"/g, '').split(',');
-            if (cols.length >= 5) processRow(cols[1], cols[3], cols[4], brokerMap);
-            if (cols.length >= 11) processRow(cols[7], cols[9], cols[10], brokerMap);
-        });
-        const resultArr = Object.keys(brokerMap).map(name => {
-            const d = brokerMap[name];
-            const net = Math.round((d.buy - d.sell) / 1000);
-            return {
-                name: name.replace(/^\d{4}\s*/, ''), 
-                buy: Math.round(d.buy / 1000),
-                sell: Math.round(d.sell / 1000),
-                net: net
-            };
-        });
-        renderTables(resultArr);
+    function processRow(name, b, s, map, cb) {
+        if (!name || name.includes("券商") || name.trim()==="") return;
+        if (!map[name]) map[name] = {buy:0, sell:0};
+        const bVal = parseFloat(b)||0, sVal = parseFloat(s)||0;
+        map[name].buy += bVal; map[name].sell += sVal;
+        cb(bVal, sVal);
     }
 
-    function processRow(name, buy, sell, map) {
-        if (!name || name.trim() === "" || name.includes("券商")) return;
-        const b = parseFloat(buy) || 0;
-        const s = parseFloat(sell) || 0;
-        if (!map[name]) map[name] = { buy: 0, sell: 0 };
-        map[name].buy += b;
-        map[name].sell += s;
-    }
-
-    function renderTables(arr) {
-        const buyList = arr.filter(i => i.net > 0).sort((a, b) => b.net - a.net).slice(0, 10);
-        const sellList = arr.filter(i => i.net < 0).sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).slice(0, 10);
-
-        document.getElementById('buy-body').innerHTML = buyList.map(i => `
-            <tr>
-                <td style="text-align:left; font-weight:500;">${i.name}</td>
-                <td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td>
-                <td class="up">${i.net}</td>
-            </tr>
-        `).join('');
-
-        document.getElementById('sell-body').innerHTML = sellList.map(i => `
-            <tr>
-                <td style="text-align:left; font-weight:500;">${i.name}</td>
-                <td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td>
-                <td class="down">${Math.abs(i.net)}</td>
-            </tr>
-        `).join('');
-
-        document.getElementById('result').style.display = 'grid';
-        document.getElementById('status').style.display = 'none';
-    }
-
-    // --- 3. 截圖功能 ---
+    // --- 3. 截圖 ---
     async function generatePreview() {
         const btn = document.getElementById('shotBtn');
         btn.innerText = "正在產生...";
         try {
-            const canvas = await html2canvas(document.querySelector("#captureArea"), {
-                scale: 2,
-                backgroundColor: "#ffffff",
-                useCORS: true
-            });
+            const canvas = await html2canvas(document.querySelector("#captureArea"), { scale: 2, backgroundColor: "#ffffff", useCORS: true });
             document.getElementById('previewImg').src = canvas.toDataURL("image/png");
             document.getElementById('overlay').style.display = "flex";
             btn.innerText = "📸 產生分享截圖";
-        } catch (err) {
-            alert("截圖失敗");
-            btn.innerText = "📸 產生分享截圖";
-        }
+        } catch (err) { alert("截圖失敗"); btn.innerText = "📸 產生分享截圖"; }
     }
 </script>
 
