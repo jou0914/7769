@@ -32,6 +32,7 @@
         .btn-fetch { background: #28a745; color: white; }
         .btn-upload { background: #007bff; color: white; position: relative; }
         .btn-screenshot { background: #6f42c1; color: white; }
+        .btn-copy { background: #fd7e14; color: white; } /* 複製按鈕橘色 */
         
         .btn:hover { opacity: 0.8; }
         input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
@@ -46,6 +47,11 @@
         .sell-head { background: #f6ffed !important; color: var(--sell-green); border-top: 3px solid var(--sell-green); }
         .up { color: var(--buy-red); font-weight: bold; }
         .down { color: var(--sell-green); font-weight: bold; }
+
+        /* 文字報告區 */
+        .report-area { margin-top: 25px; padding: 15px; background: #f1f3f5; border-radius: 10px; border: 1px dashed #ccc; }
+        .report-title { font-weight: bold; margin-bottom: 10px; display: block; color: #444; }
+        #textReport { width: 100%; height: 150px; border: none; background: transparent; font-family: monospace; font-size: 13px; color: #333; resize: none; outline: none; }
 
         /* 截圖預覽層 */
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
@@ -86,6 +92,7 @@
         <button onclick="fetchYahooPrice()" class="btn btn-fetch">🔄 同步最新行情</button>
         <div class="btn btn-upload">📁 上傳分點 CSV<input type="file" id="csvFile" accept=".csv"></div>
         <button onclick="generatePreview()" id="shotBtn" class="btn btn-screenshot">📸 產生分享截圖</button>
+        <button onclick="copyTextReport()" class="btn btn-copy">📋 複製文字報告</button>
     </div>
 
     <div id="summary-info" class="summary" style="display:none;">
@@ -107,6 +114,12 @@
             </table>
         </div>
     </div>
+
+    <!-- 文字報告顯示區 (截圖時隱藏) -->
+    <div class="report-area" id="reportContainer" style="display:none;" data-html2canvas-ignore>
+        <span class="report-title">預覽文字報告：</span>
+        <textarea id="textReport" readonly></textarea>
+    </div>
 </div>
 
 <div id="overlay">
@@ -116,16 +129,16 @@
 </div>
 
 <script>
-    // --- 1. Yahoo Finance 行情抓取 (GitHub 多重代理優化版) ---
+    let currentBuyList = [];
+    let currentSellList = [];
+
+    // --- 1. Yahoo Finance 行情抓取 ---
     async function fetchYahooPrice() {
         const btn = document.querySelector('.btn-fetch');
         const dateLabel = document.getElementById('trade-date');
         const syncStatus = document.getElementById('sync-status');
-        
         btn.innerText = "同步中...";
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/7769.TW?interval=1d&range=5d`;
-        
-        // 定義多個代理伺服器，增加在 GitHub 上的成功率
         const proxies = [
             (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
             (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
@@ -133,16 +146,11 @@
         ];
 
         let success = false;
-
         for (let i = 0; i < proxies.length; i++) {
             try {
                 const response = await fetch(proxies[i](yahooUrl));
-                if (!response.ok) throw new Error("Proxy Error");
-                
                 const data = await response.json();
-                // 處理不同代理的回傳格式
                 const json = data.contents ? JSON.parse(data.contents) : data;
-                
                 const result = json.chart.result[0];
                 const quote = result.indicators.quote[0];
                 const timestamps = result.timestamp;
@@ -177,23 +185,17 @@
                 syncStatus.innerText = `來源：Yahoo (Proxy ${i+1})`;
                 btn.innerText = "同步成功";
                 success = true;
+                updateTextReport(); // 更新報告
                 break; 
-            } catch (e) {
-                console.warn(`代理 ${i + 1} 失敗，嘗試下一個...`);
-            }
+            } catch (e) { console.warn(`代理 ${i + 1} 失敗`); }
         }
-
-        if (!success) {
-            btn.innerText = "同步失敗";
-            dateLabel.innerText = "行情同步失敗";
-            syncStatus.innerText = "所有代理均失效，請稍後再試";
-        }
+        if (!success) btn.innerText = "同步失敗";
         setTimeout(() => { btn.innerText = "🔄 同步最新行情"; }, 2000);
     }
 
     fetchYahooPrice();
 
-    // --- 2. CSV 解析 (雙列式) ---
+    // --- 2. CSV 解析 ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -206,7 +208,6 @@
 
             lines.forEach(line => {
                 const cols = line.replace(/"/g, '').split(',');
-                // 雙列式解析：左 [1,3,4], 右 [7,9,10]
                 if (cols.length >= 5) processRow(cols[1], cols[3], cols[4], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
                 if (cols.length >= 11) processRow(cols[7], cols[9], cols[10], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
             });
@@ -220,12 +221,14 @@
             document.getElementById('total-sell').innerText = Math.round(totalSell/1000);
             document.getElementById('summary-info').style.display = 'flex';
 
-            const buyList = resultArr.filter(i=>i.net>0).sort((a,b)=>b.net-a.net).slice(0,10);
-            const sellList = resultArr.filter(i=>i.net<0).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net)).slice(0,10);
+            currentBuyList = resultArr.filter(i=>i.net>0).sort((a,b)=>b.net-a.net).slice(0, 10);
+            currentSellList = resultArr.filter(i=>i.net<0).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net)).slice(0, 10);
 
-            document.getElementById('buy-body').innerHTML = buyList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="up">${i.net}</td></tr>`).join('');
-            document.getElementById('sell-body').innerHTML = sellList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="down">${Math.abs(i.net)}</td></tr>`).join('');
+            document.getElementById('buy-body').innerHTML = currentBuyList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="up">${i.net}</td></tr>`).join('');
+            document.getElementById('sell-body').innerHTML = currentSellList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="down">${Math.abs(i.net)}</td></tr>`).join('');
             document.getElementById('result').style.display = 'grid';
+            document.getElementById('reportContainer').style.display = 'block';
+            updateTextReport();
         };
     });
 
@@ -237,7 +240,52 @@
         cb(bVal, sVal);
     }
 
-    // --- 3. 截圖 ---
+    // --- 3. 文字報告生成與複製 ---
+    function updateTextReport() {
+        const date = document.getElementById('trade-date').innerText;
+        const price = document.getElementById('cur-price').innerText;
+        const diff = document.getElementById('cur-diff').innerText;
+        const vol = document.getElementById('p-vol').innerText;
+
+        let report = `📊 7769 鴻勁 籌碼分析報告\n`;
+        report += `${date}\n`;
+        report += `收盤價：${price} (${diff})\n`;
+        report += `成交量：${vol}\n`;
+        report += `--------------------\n`;
+
+        if (currentBuyList.length > 0) {
+            report += `【買超前十名】\n`;
+            currentBuyList.forEach((item, idx) => {
+                report += `${idx + 1}. ${item.name} (+${item.net}張)\n`;
+            });
+        }
+
+        if (currentSellList.length > 0) {
+            report += `\n【賣超前十名】\n`;
+            currentSellList.forEach((item, idx) => {
+                report += `${idx + 1}. ${item.name} (-${Math.abs(item.net)}張)\n`;
+            });
+        }
+
+        document.getElementById('textReport').value = report;
+    }
+
+    function copyTextReport() {
+        const text = document.getElementById('textReport').value;
+        if (!text) { alert("請先匯入 CSV 數據"); return; }
+
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ 報告已複製到剪貼簿！");
+        }).catch(err => {
+            // 備援方案
+            const textArea = document.getElementById('textReport');
+            textArea.select();
+            document.execCommand('copy');
+            alert("✅ 報告已複製 (備援模式)！");
+        });
+    }
+
+    // --- 4. 截圖 ---
     async function generatePreview() {
         const btn = document.getElementById('shotBtn');
         btn.innerText = "正在產生...";
