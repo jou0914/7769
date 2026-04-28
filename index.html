@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7769 鴻勁 - AI 綜合分析 v3.9.5</title>
+    <title>7769 鴻勁 - AI 綜合分析 v4.2.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
@@ -14,9 +14,6 @@
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: var(--bg); padding: 15px; margin: 0; color: var(--text-main); }
         .container { max-width: 1000px; margin: auto; background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; }
         
-        .version-tag { font-size: 10px; color: #bbb; vertical-align: middle; margin-left: 5px; }
-
-        /* 儀表板通用樣式 */
         .dash-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
         .price-main { grid-column: span 2; display: flex; flex-direction: column; justify-content: center; }
         .current-price { font-size: 38px; font-weight: 800; line-height: 1; outline: none; }
@@ -25,7 +22,6 @@
         .dash-label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
         .dash-val { font-size: 15px; font-weight: 600; color: #333; outline: none; }
 
-        /* 借券與外資專用樣式 */
         .sbl-section { border-left: 4px solid var(--sbl-blue) !important; background: #f0f7ff; }
         .foreign-section { border-left: 4px solid var(--foreign-gold) !important; background: #fffdf0; }
         .highlight-gold { color: var(--foreign-gold); font-size: 18px; }
@@ -50,18 +46,13 @@
         table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
         th, td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; }
         th { background: #f1f3f5; color: #555; font-weight: 600; }
-        .buy-head { background: #fff1f0 !important; color: var(--buy-red); border-top: 3px solid var(--buy-red); }
-        .sell-head { background: #f6ffed !important; color: var(--sell-green); border-top: 3px solid var(--sell-green); }
         .up { color: var(--buy-red); font-weight: bold; }
         .down { color: var(--sell-green); font-weight: bold; }
 
         .summary { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-weight: bold; border: 1px solid #eee; }
 
         .report-area { margin-top: 25px; padding: 15px; background: #f1f3f5; border-radius: 10px; border: 1px dashed #ccc; }
-        textarea { width: 100%; height: 220px; border: none; background: transparent; font-family: monospace; font-size: 12px; color: #333; resize: none; outline: none; }
-
-        .manual-input-box { margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 10px; border: 1px solid #ffeeba; }
-        .manual-input-box input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; margin-top: 10px; outline: none; box-sizing: border-box; }
+        textarea { width: 100%; height: 250px; border: none; background: transparent; font-family: monospace; font-size: 12px; color: #333; resize: none; outline: none; }
 
         .debug-panel { margin-top: 20px; padding: 15px; background: #1a1a1a; color: #00ff00; font-family: monospace; font-size: 11px; border-radius: 8px; overflow-y: auto; max-height: 150px; border: 1px solid #444; }
 
@@ -77,11 +68,11 @@
 <div class="container" id="captureArea">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
-            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v3.9.5 AI</span></h2>
-            <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | AI 智慧終端分析</div>
+            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v4.2.0 AI</span></h2>
+            <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | 綜合數據分析終端</div>
         </div>
         <div style="text-align: right;">
-            <div id="trade-date" contenteditable="true" oninput="updateTextReport()" style="font-size: 13px; color: var(--text-sub); font-weight: bold; outline: none;">日期：同步中...</div>
+            <div id="trade-date" style="font-size: 13px; color: var(--text-sub); font-weight: bold;">同步中...</div>
             <div id="sync-status" style="font-size: 10px; color: #aaa;">來源偵測中</div>
         </div>
     </div>
@@ -89,16 +80,16 @@
     <!-- 行情儀表板 -->
     <div id="price-dashboard" class="dash-section">
         <div class="price-main">
-            <div id="cur-price" class="current-price" contenteditable="true" oninput="updateTextReport()">----</div>
-            <div id="cur-diff" class="price-diff" contenteditable="true" oninput="updateTextReport()">-- ( --% )</div>
+            <div id="cur-price" class="current-price">----</div>
+            <div id="cur-diff" class="price-diff">-- ( --% )</div>
         </div>
-        <div class="dash-item"><span class="dash-label">開盤</span><span id="p-open" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
-        <div class="dash-item"><span class="dash-label">最高</span><span id="p-high" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
-        <div class="dash-item"><span class="dash-label">最低</span><span id="p-low" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
-        <div class="dash-item"><span class="dash-label">成交量</span><span id="p-vol" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
+        <div class="dash-item"><span class="dash-label">開盤</span><span id="p-open" class="dash-val">--</span></div>
+        <div class="dash-item"><span class="dash-label">最高</span><span id="p-high" class="dash-val">--</span></div>
+        <div class="dash-item"><span class="dash-label">最低</span><span id="p-low" class="dash-val">--</span></div>
+        <div class="dash-item"><span class="dash-label">成交量</span><span id="p-vol" class="dash-val">--</span></div>
     </div>
 
-    <!-- 外資持股儀表板 (New) -->
+    <!-- 外資持股儀表板 -->
     <div id="foreign-dashboard" class="dash-section foreign-section">
         <div class="dash-item" style="border-left:none; padding-left:0;"><span class="dash-label">外資持股比例</span><span id="f-ratio" class="dash-val highlight-gold">—</span></div>
         <div class="dash-item"><span class="dash-label">持有股數</span><span id="f-shares" class="dash-val">—</span></div>
@@ -107,25 +98,22 @@
     </div>
 
     <!-- 借券資訊儀表板 -->
-    <div id="sbl-dashboard" class="dash-section sbl-section" style="display:none;">
-        <div class="dash-item" id="row-sblPrev" style="border-left:none; padding-left:0;"><span class="dash-label sbl-label">借券餘額(前日)</span><span id="sblPrev" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
-        <div class="dash-item" id="row-sblIn"><span class="dash-label sbl-label">今日借券</span><span id="sblIn" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
-        <div class="dash-item" id="row-sblOut"><span class="dash-label sbl-label">今日還券</span><span id="sblOut" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
-        <div class="dash-item" id="row-sblBal"><span class="dash-label sbl-label">借券餘額(今日)</span><span id="sblBal" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
-        <div class="dash-item" id="row-sblLimit"><span class="dash-label sbl-label">可借券限額</span><span id="sblLimit" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
+    <div id="sbl-dashboard" class="dash-section sbl-section">
+        <div class="dash-item" style="border-left:none; padding-left:0;"><span class="dash-label">當日借券餘額</span><span id="sbl-bal" class="dash-val">—</span></div>
+        <div class="dash-item"><span class="dash-label">今日賣出</span><span id="sbl-sell" class="dash-val">—</span></div>
+        <div class="dash-item"><span class="dash-label">今日還券</span><span id="sbl-ret" class="dash-val">—</span></div>
+        <div class="dash-item"><span class="dash-label">借券資料日期</span><span id="sbl-date" class="dash-val">—</span></div>
     </div>
     
     <div class="action-bar" data-html2canvas-ignore>
         <a href="https://bsr.twse.com.tw/bshtm/" target="_blank" class="btn btn-link">🔗 開啟證交所</a>
-        <button onclick="openTodaySblJson()" class="btn btn-link" style="background:#17a2b8;">🔗 借券 JSON</button>
-        <button onclick="fetchAllData()" class="btn btn-fetch">🔄 同步數據</button>
+        <button onclick="fetchAllData()" class="btn btn-fetch">🔄 同步最新數據</button>
         <button onclick="askGemini()" class="btn btn-ai" id="aiBtn">🤖 AI 分析</button>
         <div class="btn btn-upload">📁 上傳分點 CSV<input type="file" id="csvFile" accept=".csv"></div>
         <button onclick="generatePreview()" id="shotBtn" class="btn btn-screenshot">📸 截圖</button>
-        <button onclick="copyAllLog()" class="btn btn-copy">📋 複製報告</button>
+        <button onclick="copyAllLog()" class="btn btn-copy">📋 複製完整報告</button>
     </div>
 
-    <!-- AI 分析結果區 -->
     <div id="aiSection" class="ai-section">
         <div class="ai-title">✨ Gemini 專業金融分析</div>
         <div id="aiContent" class="ai-content">正在思考中...</div>
@@ -136,16 +124,16 @@
         <span style="color:var(--sell-green)">總賣出：<span id="total-sell">0</span> 張</span>
     </div>
 
-    <div id="result" class="grid" style="display:none; margin-top: 20px;">
+    <div id="result" class="grid" style="display:none;">
         <div>
             <table>
-                <thead><tr><th colspan="3" class="buy-head">買超前十名 (張)</th></tr></thead>
+                <thead><tr><th colspan="3" style="background:#fff1f0; color:var(--buy-red)">買超前十名 (張)</th></tr></thead>
                 <tbody id="buy-body"></tbody>
             </table>
         </div>
         <div>
             <table>
-                <thead><tr><th colspan="3" class="sell-head">賣超前十名 (張)</th></tr></thead>
+                <thead><tr><th colspan="3" style="background:#f6ffed; color:var(--sell-green)">賣超前十名 (張)</th></tr></thead>
                 <tbody id="sell-body"></tbody>
             </table>
         </div>
@@ -153,11 +141,6 @@
 
     <div class="report-area" id="reportContainer" data-html2canvas-ignore>
         <textarea id="textReport" readonly></textarea>
-    </div>
-
-    <div class="manual-input-box" data-html2canvas-ignore>
-        <strong style="font-size:12px; color:#856404;">💡 借券同步：請貼上證交所 JSON 內容</strong>
-        <input type="text" id="manualJson" placeholder="在此貼上內容..." oninput="handleManualJson(this.value)">
     </div>
 
     <div class="debug-panel" id="debugPanel" data-html2canvas-ignore>
@@ -176,7 +159,8 @@
     let currentBuyList = [];
     let currentSellList = [];
     let globalData = {};
-    let foreignData = null;
+    let finmindForeign = null;
+    let finmindSBL = null;
 
     function log(msg) {
         const d = document.getElementById('debugContent');
@@ -184,20 +168,21 @@
         d.scrollTop = d.scrollHeight;
     }
 
-    // --- 1. 雲端同步 (行情 + 外資) ---
     async function fetchAllData() {
         const btn = document.querySelector('.btn-fetch');
         btn.innerText = "同步中...";
-        log("連線 GAS 抓取行情...");
-        
-        // 同時執行行情與外資抓取
-        fetchForeignData();
+        log("連線 GAS 與 FinMind...");
+        await Promise.all([fetchYahooPrice(), fetchForeignData(), fetchShortSaleData()]);
+        btn.innerText = "同步完成";
+        updateTextReport();
+        setTimeout(() => { btn.innerText = "🔄 同步最新數據"; }, 2000);
+    }
 
+    async function fetchYahooPrice() {
         try {
             const res = await fetch(GAS_URL);
             const data = await res.json();
             globalData = data;
-            if (data.debug) data.debug.forEach(m => log(m));
             if (data.price) {
                 const p = data.price;
                 document.getElementById('trade-date').innerText = "日期：" + p.date;
@@ -210,78 +195,52 @@
                 document.getElementById('cur-diff').innerText = `${parseFloat(p.diff) > 0 ? '▲' : '▼'} ${Math.abs(p.diff)} (${p.percent}%)`;
                 document.getElementById('cur-diff').style.color = color;
                 document.getElementById('cur-price').style.color = color;
-                btn.innerText = "同步成功";
+                document.getElementById('sync-status').innerText = `來源：${p.source}`;
+                log("✅ 行情同步成功");
             }
-            updateTextReport();
-        } catch (e) { log("❌ 同步失敗: " + e.message); btn.innerText = "同步失敗"; }
-        setTimeout(() => { btn.innerText = "🔄 同步數據"; }, 2000);
+        } catch (e) { log("❌ 行情同步失敗"); }
     }
 
-    // --- 2. 外資持股抓取 (FinMind) ---
     async function fetchForeignData() {
-        log("正在抓取 FinMind 外資持股數據...");
         const today = new Date();
-        const startDate = new Date(today);
-        startDate.setDate(today.getDate() - 30);
+        const start = new Date(today); start.setDate(today.getDate() - 30);
         const fmt = d => d.toISOString().slice(0, 10);
-        const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockShareholding&data_id=7769&start_date=${fmt(startDate)}&end_date=${fmt(today)}`;
-
+        const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockShareholding&data_id=7769&start_date=${fmt(start)}&end_date=${fmt(today)}`;
         try {
             const res = await fetch(url);
             const json = await res.json();
             if (json.data && json.data.length > 0) {
                 const d = json.data[json.data.length - 1];
-                foreignData = d;
+                finmindForeign = d;
                 document.getElementById('f-ratio').textContent = d.ForeignInvestmentSharesRatio.toFixed(2) + '%';
                 document.getElementById('f-shares').textContent = Number(d.ForeignInvestmentShares).toLocaleString() + " 股";
                 document.getElementById('f-issued').textContent = Number(d.NumberOfSharesIssued).toLocaleString() + " 股";
                 document.getElementById('f-date').textContent = d.date;
-                log("✅ 外資持股同步成功");
-                updateTextReport();
+                log("✅ 外資數據同步成功");
             }
-        } catch (e) { log("❌ 外資抓取失敗: " + e.message); }
+        } catch (e) { log("❌ 外資抓取失敗"); }
     }
 
-    // --- 3. 借券自動貼上邏輯 ---
-    window.addEventListener('focus', async () => {
+    async function fetchShortSaleData() {
+        const today = new Date();
+        const start = new Date(today); start.setDate(today.getDate() - 30);
+        const fmt = d => d.toISOString().slice(0, 10);
+        const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanDailyShortSaleBalances&data_id=7769&start_date=${fmt(start)}&end_date=${fmt(today)}`;
         try {
-            const text = await navigator.clipboard.readText();
-            if (text.includes("stat") && text.includes("data") && text.includes("7769")) {
-                log("偵測到剪貼簿中有借券數據，自動解析中...");
-                handleManualJson(text);
-            }
-        } catch (err) {}
-    });
-
-    function handleManualJson(val) {
-        try {
-            const json = JSON.parse(val);
+            const res = await fetch(url);
+            const json = await res.json();
             if (json.data && json.data.length > 0) {
-                const d = json.data.find(r => r[0] === "7769") || json.data[0];
-                const credit = { sblPrev: d[8], sblIn: d[9], sblOut: d[10], sblBal: d[12], sblLimit: d[13] };
-                updateSBLUI(credit);
-                log("✅ 借券 JSON 解析成功");
-                document.getElementById('manualJson').value = "";
+                const d = json.data[json.data.length - 1];
+                finmindSBL = d;
+                document.getElementById('sbl-bal').textContent = Number(d.SBLShortSalesCurrentDayBalance).toLocaleString() + " 股";
+                document.getElementById('sbl-sell').textContent = Number(d.SBLShortSalesShortSales).toLocaleString() + " 股";
+                document.getElementById('sbl-ret').textContent = Number(d.SBLShortSalesReturns).toLocaleString() + " 股";
+                document.getElementById('sbl-date').textContent = d.date;
+                log("✅ 借券數據同步成功");
             }
-        } catch (e) { }
+        } catch (e) { log("❌ 借券抓取失敗"); }
     }
 
-    function updateSBLUI(c) {
-        const fields = [{id:'sblPrev',v:c.sblPrev},{id:'sblIn',v:c.sblIn},{id:'sblOut',v:c.sblOut},{id:'sblBal',v:c.sblBal},{id:'sblLimit',v:c.sblLimit}];
-        let hasAny = false;
-        fields.forEach(f => {
-            const elem = document.getElementById(f.id);
-            if (f.v && f.v !== "0" && f.v !== "0,000") {
-                elem.innerText = f.v + " 股";
-                elem.parentElement.style.display = "flex";
-                hasAny = true;
-            } else { elem.parentElement.style.display = "none"; }
-        });
-        document.getElementById('sbl-dashboard').style.display = hasAny ? "grid" : "none";
-        updateTextReport();
-    }
-
-    // --- 4. CSV 解析 ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -320,7 +279,6 @@
         cb(bVal, sVal);
     }
 
-    // --- 5. 文字報告與 AI ---
     async function askGemini() {
         const aiBtn = document.getElementById('aiBtn');
         const aiSection = document.getElementById('aiSection');
@@ -330,9 +288,9 @@
         aiBtn.disabled = true;
         aiSection.style.display = "block";
         aiContent.innerText = "正在分析大數據籌碼、借券與外資動向...";
-        let sblText = document.getElementById('sblBal').innerText ? `借券餘額 ${document.getElementById('sblBal').innerText}` : "";
-        let fText = foreignData ? `外資持股比例 ${foreignData.ForeignInvestmentSharesRatio}%` : "";
-        const payload = { price: globalData.price, creditText: `${sblText} ${fText}`, topBuy: currentBuyList.slice(0,3).map(i => i.name).join(', '), topSell: currentSellList.slice(0,3).map(i => i.name).join(', ') };
+        let sblText = finmindSBL ? `借券餘額 ${Number(finmindSBL.SBLShortSalesCurrentDayBalance).toLocaleString()}股` : "";
+        let fText = finmindForeign ? `外資持股比例 ${finmindForeign.ForeignInvestmentSharesRatio}%` : "";
+        const payload = { price: globalData.price, creditText: sblText, foreignText: fText, topBuy: currentBuyList.slice(0,3).map(i => i.name).join(', '), topSell: currentSellList.slice(0,3).map(i => i.name).join(', ') };
         try {
             const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
             const result = await res.json();
@@ -348,18 +306,25 @@
         const diff = document.getElementById('cur-diff').innerText;
         const vol = document.getElementById('p-vol').innerText;
 
-        let report = `📊 7769 鴻勁 綜合分析報告\n${date}\n收盤：${p.close} (${diff})\n成交量：${vol}\n`;
+        let report = `📊 7769 鴻勁 綜合分析報告\n${date}\n收盤：${p.close} (${diff})\n開盤：${p.open} | 最高：${p.high} | 最低：${p.low}\n成交量：${vol}\n`;
         
-        if (foreignData) {
-            report += `--------------------\n【外資持股】(資料日:${foreignData.date})\n`;
-            report += `持股比例：${foreignData.ForeignInvestmentSharesRatio}%\n`;
-            report += `持有股數：${Number(foreignData.ForeignInvestmentShares).toLocaleString()} 股\n`;
+        if (finmindForeign) {
+            report += `--------------------\n【外資持股詳細】(資料日:${finmindForeign.date})\n`;
+            report += `外資持股比例：${finmindForeign.ForeignInvestmentSharesRatio.toFixed(2)}%\n`;
+            report += `外資尚可投資比例：${finmindForeign.ForeignInvestmentRemainRatio.toFixed(2)}%\n`;
+            report += `外資投資上限比例：${finmindForeign.ForeignInvestmentUpperLimitRatio.toFixed(2)}%\n`;
+            report += `外資持有股數：${Number(finmindForeign.ForeignInvestmentShares).toLocaleString()} 股\n`;
+            report += `發行總股數：${Number(finmindForeign.NumberOfSharesIssued).toLocaleString()} 股\n`;
         }
-
-        let sblText = "";
-        const sblItems = [{l:"借券餘額(前日)",v:document.getElementById('sblPrev').innerText},{l:"今日借券",v:document.getElementById('sblIn').innerText},{l:"今日還券",v:document.getElementById('sblOut').innerText},{l:"借券餘額(今日)",v:document.getElementById('sblBal').innerText}];
-        sblItems.forEach(item => { if(item.v && item.v !== "" && item.v !== "0 股") sblText += `${item.l}：${item.v}\n`; });
-        if(sblText) report += `--------------------\n【借券資訊】\n${sblText}`;
+        if (finmindSBL) {
+            report += `--------------------\n【借券賣出詳細】(資料日:${finmindSBL.date})\n`;
+            report += `當日借券餘額：${Number(finmindSBL.SBLShortSalesCurrentDayBalance).toLocaleString()} 股\n`;
+            report += `前日借券餘額：${Number(finmindSBL.SBLShortSalesPreviousDayBalance).toLocaleString()} 股\n`;
+            report += `今日借券賣出：${Number(finmindSBL.SBLShortSalesShortSales).toLocaleString()} 股\n`;
+            report += `今日還券股數：${Number(finmindSBL.SBLShortSalesReturns).toLocaleString()} 股\n`;
+            report += `當日調整股數：${Number(finmindSBL.SBLShortSalesAdjustments).toLocaleString()} 股\n`;
+            report += `借券賣出限額：${Number(finmindSBL.SBLShortSalesQuota).toLocaleString()} 股\n`;
+        }
 
         if (currentBuyList.length > 0) {
             report += `--------------------\n【買超前十】\n`;
@@ -374,13 +339,7 @@
 
     function copyAllLog() {
         const t = document.getElementById('textReport');
-        t.select(); document.execCommand('copy'); alert("✅ 報告已複製！");
-    }
-
-    function openTodaySblJson() {
-        const now = new Date();
-        const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
-        window.open(`https://www.twse.com.tw/exchangeReport/TWT93U?response=json&date=${dateStr}&stockNo=7769`, '_blank');
+        t.select(); document.execCommand('copy'); alert("✅ 完整報告已複製！");
     }
 
     async function generatePreview() {
