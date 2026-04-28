@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7769 鴻勁 - AI 綜合分析 v3.7.1</title>
+    <title>7769 鴻勁 - AI 綜合分析 v3.8.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
@@ -53,7 +53,7 @@
         .down { color: var(--sell-green); font-weight: bold; }
 
         .report-area { margin-top: 25px; padding: 15px; background: #f1f3f5; border-radius: 10px; border: 1px dashed #ccc; }
-        textarea { width: 100%; height: 180px; border: none; background: transparent; font-family: monospace; font-size: 12px; color: #333; resize: none; outline: none; }
+        textarea { width: 100%; height: 220px; border: none; background: transparent; font-family: monospace; font-size: 12px; color: #333; resize: none; outline: none; }
 
         .manual-input-box { margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 10px; border: 1px solid #ffeeba; }
         .manual-input-box input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; margin-top: 10px; outline: none; box-sizing: border-box; }
@@ -72,7 +72,7 @@
 <div class="container" id="captureArea">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
-            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v3.7.1 AI</span></h2>
+            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v3.8.0 AI</span></h2>
             <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | AI 智慧終端分析</div>
         </div>
         <div style="text-align: right;">
@@ -87,10 +87,10 @@
             <div id="cur-price" class="current-price" contenteditable="true" oninput="updateTextReport()">----</div>
             <div id="cur-diff" class="price-diff" contenteditable="true" oninput="updateTextReport()">-- ( --% )</div>
         </div>
-        <div class="dash-item"><span class="dash-label">開盤</span><span id="p-open" class="dash-val" contenteditable="true">--</span></div>
-        <div class="dash-item"><span class="dash-label">最高</span><span id="p-high" class="dash-val" contenteditable="true">--</span></div>
-        <div class="dash-item"><span class="dash-label">最低</span><span id="p-low" class="dash-val" contenteditable="true">--</span></div>
-        <div class="dash-item"><span class="dash-label">成交量</span><span id="p-vol" class="dash-val" contenteditable="true">--</span></div>
+        <div class="dash-item"><span class="dash-label">開盤</span><span id="p-open" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
+        <div class="dash-item"><span class="dash-label">最高</span><span id="p-high" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
+        <div class="dash-item"><span class="dash-label">最低</span><span id="p-low" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
+        <div class="dash-item"><span class="dash-label">成交量</span><span id="p-vol" class="dash-val" contenteditable="true" oninput="updateTextReport()">--</span></div>
     </div>
 
     <!-- 借券資訊儀表板 -->
@@ -299,14 +299,35 @@
         cb(bVal, sVal);
     }
 
+    // --- 4. 文字報告 (v3.8.0 強化版：加入開高低) ---
     function updateTextReport() {
-        if (!globalData.price) return;
-        const p = globalData.price;
-        let report = `📊 7769 鴻勁 綜合分析報告\n日期：${p.date}\n收盤：${p.close} (${document.getElementById('cur-diff').innerText})\n成交量：${p.vol}張\n`;
+        const date = document.getElementById('trade-date').innerText;
+        const price = document.getElementById('cur-price').innerText;
+        const diff = document.getElementById('cur-diff').innerText;
+        const open = document.getElementById('p-open').innerText;
+        const high = document.getElementById('p-high').innerText;
+        const low = document.getElementById('p-low').innerText;
+        const vol = document.getElementById('p-vol').innerText;
+
+        let report = `📊 7769 鴻勁 綜合分析報告\n`;
+        report += `${date}\n`;
+        report += `收盤：${price} (${diff})\n`;
+        report += `開盤：${open} | 最高：${high} | 最低：${low}\n`;
+        report += `成交量：${vol}\n`;
+        
         let sblText = "";
-        const sblItems = [{l:"借券餘額", v:document.getElementById('sblBal').innerText}];
-        if(sblItems[0].v && sblItems[0].v !== "") sblText = `借券餘額：${sblItems[0].v}\n`;
-        if(sblText) report += `--------------------\n${sblText}`;
+        const sblItems = [
+            {l: "借券餘額(前日)", v: document.getElementById('sblPrev').innerText},
+            {l: "今日借券", v: document.getElementById('sblIn').innerText},
+            {l: "今日還券", v: document.getElementById('sblOut').innerText},
+            {l: "借券餘額(今日)", v: document.getElementById('sblBal').innerText},
+            {l: "可借券限額", v: document.getElementById('sblLimit').innerText}
+        ];
+        sblItems.forEach(item => {
+            if(item.v && item.v !== "" && item.v !== "0 股") sblText += `${item.l}：${item.v}\n`;
+        });
+        if(sblText) report += `--------------------\n【借券資訊】\n${sblText}`;
+
         if (currentBuyList.length > 0) {
             report += `--------------------\n【買超前十】\n`;
             currentBuyList.forEach((item, idx) => report += `${idx + 1}. ${item.name} (+${item.net}張)\n`);
