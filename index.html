@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7769 鴻勁 - 綜合分析 v2.2.3</title>
+    <title>7769 鴻勁 - 綜合分析 v2.3.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
@@ -28,6 +28,7 @@
         .sbl-section { border-left: 4px solid var(--sbl-blue) !important; background: #f0f7ff; }
         .sbl-label { color: var(--sbl-blue); font-weight: bold; }
 
+        /* 按鈕區 */
         .action-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
         .btn { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; text-decoration: none; }
         .btn-link { background: #2c3e50; color: white; }
@@ -56,6 +57,10 @@
         .manual-input-box { margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 10px; border: 1px solid #ffeeba; }
         .manual-input-box input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; margin-top: 10px; outline: none; box-sizing: border-box; }
 
+        /* 偵錯面板 */
+        .debug-panel { margin-top: 20px; padding: 15px; background: #1a1a1a; color: #00ff00; font-family: monospace; font-size: 11px; border-radius: 8px; overflow-y: auto; max-height: 200px; border: 1px solid #444; }
+        .debug-err { color: #ff4444; }
+
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
         #previewImg { max-width: 100%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
         .close-btn { margin-top: 20px; background: white; color: black; padding: 10px 40px; border-radius: 25px; cursor: pointer; font-weight: bold; }
@@ -68,7 +73,7 @@
 <div class="container" id="captureArea">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
-            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v2.2.3</span></h2>
+            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v2.3.0</span></h2>
             <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | 綜合數據分析</div>
         </div>
         <div style="text-align: right;">
@@ -94,14 +99,13 @@
         <div class="dash-item" id="row-sblPrev" style="border-left:none; padding-left:0;"><span class="dash-label sbl-label">借券餘額(前日)</span><span id="sblPrev" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
         <div class="dash-item" id="row-sblIn"><span class="dash-label sbl-label">今日借券</span><span id="sblIn" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
         <div class="dash-item" id="row-sblOut"><span class="dash-label sbl-label">今日還券</span><span id="sblOut" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
-        <div class="dash-item" id="row-sblAdj" style="display:none;"><span class="dash-label sbl-label">調整</span><span id="sblAdj" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
         <div class="dash-item" id="row-sblBal"><span class="dash-label sbl-label">借券餘額(今日)</span><span id="sblBal" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
         <div class="dash-item" id="row-sblLimit"><span class="dash-label sbl-label">可借券限額</span><span id="sblLimit" class="dash-val sbl-val" contenteditable="true" oninput="updateTextReport()"></span></div>
     </div>
     
     <div class="action-bar" data-html2canvas-ignore>
         <a href="https://www.twse.com.tw/exchangeReport/TWT93U?response=json&stockNo=7769" target="_blank" class="btn btn-link">🔗 開啟借券 JSON</a>
-        <button onclick="fetchYahooPrice()" class="btn btn-fetch">🔄 同步最新行情</button>
+        <button onclick="fetchPriceWithBackups()" class="btn btn-fetch">🔄 同步最新行情</button>
         <div class="btn btn-upload">📁 上傳分點 CSV<input type="file" id="csvFile" accept=".csv"></div>
         <button onclick="generatePreview()" id="shotBtn" class="btn btn-screenshot">📸 產生分享截圖</button>
         <button onclick="copyAllLog()" class="btn btn-copy">📋 複製完整報告</button>
@@ -131,11 +135,15 @@
         <textarea id="textReport" readonly></textarea>
     </div>
 
-    <!-- 手動貼上區 (配合 iOS 捷徑) -->
     <div class="manual-input-box" data-html2canvas-ignore>
-        <strong style="font-size:13px; color:#856404;">💡 捷徑同步 / 手動貼上</strong>
-        <p style="font-size:11px; margin:5px 0;">請在此貼上證交所 JSON 內容，系統將自動解析借券數據：</p>
+        <strong style="font-size:13px; color:#856404;">💡 借券同步失敗？</strong>
+        <p style="font-size:11px; margin:5px 0;">請點擊上方「開啟借券 JSON」，將看到的內容全選複製，貼在下方：</p>
         <input type="text" id="manualJson" placeholder="在此貼上內容..." oninput="handleManualJson(this.value)">
+    </div>
+
+    <!-- 偵錯日誌區 -->
+    <div class="debug-panel" id="debugPanel" data-html2canvas-ignore>
+        <div id="debugContent">系統日誌啟動...</div>
     </div>
 </div>
 
@@ -149,73 +157,124 @@
     let currentBuyList = [];
     let currentSellList = [];
 
-    // --- 1. Yahoo Finance 行情抓取 (多重代理) ---
-    async function fetchYahooPrice() {
+    function log(msg, isError = false) {
+        const d = document.getElementById('debugContent');
+        const colorClass = isError ? 'class="debug-err"' : '';
+        d.innerHTML += `<br>[${new Date().toLocaleTimeString()}] <span ${colorClass}>${msg}</span>`;
+        d.scrollTop = d.scrollHeight;
+    }
+
+    // --- 1. 五重行情備援抓取邏輯 ---
+    async function fetchPriceWithBackups() {
         const btn = document.querySelector('.btn-fetch');
         btn.innerText = "同步中...";
-        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/7769.TW?interval=1d&range=5d`;
-        const proxies = [
-            (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+        log("開始行情同步流程...");
+
+        const stockId = "7769";
+        const sources = [
+            { name: "Yahoo Q1", url: `https://query1.finance.yahoo.com/v8/finance/chart/${stockId}.TW?interval=1d&range=5d`, proxy: "https://api.allorigins.win/get?url=" },
+            { name: "Yahoo Q2", url: `https://query2.finance.yahoo.com/v8/finance/chart/${stockId}.TW?interval=1d&range=5d`, proxy: "https://corsproxy.io/?" },
+            { name: "鉅亨網 Anue", url: `https://api.cnyes.com/market/v1/quote/stock/TWS:${stockId}:STOCK`, proxy: "https://api.codetabs.com/v1/proxy?quest=" },
+            { name: "證交所 MIS", url: `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${stockId}.tw&_=${Date.now()}`, proxy: "https://api.allorigins.win/get?url=" }
         ];
 
         let success = false;
-        for (let i = 0; i < proxies.length; i++) {
+        for (let src of sources) {
             try {
-                const response = await fetch(proxies[i](yahooUrl));
-                const data = await response.json();
+                log(`嘗試來源: ${src.name}...`);
+                const finalUrl = src.proxy + encodeURIComponent(src.url);
+                const res = await fetch(finalUrl);
+                const data = await res.json();
                 const json = data.contents ? JSON.parse(data.contents) : data;
-                const result = json.chart.result[0];
-                const quote = result.indicators.quote[0];
-                const lastIdx = result.timestamp.length - 1;
 
-                const close = quote.close[lastIdx];
-                const prevClose = quote.close[lastIdx - 1];
-                const diff = (close - prevClose).toFixed(2);
-                const percent = ((diff / prevClose) * 100).toFixed(2);
-                const dateObj = new Date(result.timestamp[lastIdx] * 1000);
+                if (src.name.includes("Yahoo")) {
+                    const result = json.chart.result[0];
+                    const quote = result.indicators.quote[0];
+                    const lastIdx = result.timestamp.length - 1;
+                    updatePriceUI({
+                        date: new Date(result.timestamp[lastIdx] * 1000).toLocaleDateString(),
+                        close: quote.close[lastIdx],
+                        open: quote.open[lastIdx],
+                        high: quote.high[lastIdx],
+                        low: quote.low[lastIdx],
+                        vol: Math.round(quote.volume[lastIdx] / 1000),
+                        diff: (quote.close[lastIdx] - quote.close[lastIdx-1]).toFixed(2)
+                    });
+                } else if (src.name === "鉅亨網 Anue") {
+                    const item = json.data;
+                    updatePriceUI({
+                        date: new Date().toLocaleDateString(),
+                        close: item.close,
+                        open: item.open,
+                        high: item.high,
+                        low: item.low,
+                        vol: Math.round(item.volume / 1000),
+                        diff: item.change
+                    });
+                } else if (src.name === "證交所 MIS") {
+                    const item = json.msgArray[0];
+                    updatePriceUI({
+                        date: new Date().toLocaleDateString(),
+                        close: item.z,
+                        open: item.o,
+                        high: item.h,
+                        low: item.l,
+                        vol: item.v,
+                        diff: (parseFloat(item.z) - parseFloat(item.y)).toFixed(2)
+                    });
+                }
 
-                document.getElementById('trade-date').innerText = "日期：" + `${dateObj.getFullYear()}/${String(dateObj.getMonth()+1).padStart(2,'0')}/${String(dateObj.getDate()).padStart(2,'0')}`;
-                document.getElementById('cur-price').innerText = close.toFixed(2);
-                document.getElementById('p-open').innerText = open.toFixed(2);
-                document.getElementById('p-high').innerText = high.toFixed(2);
-                document.getElementById('p-low').innerText = low.toFixed(2);
-                document.getElementById('p-vol').innerText = vol + " 張";
-
-                const color = diff > 0 ? 'var(--buy-red)' : (diff < 0 ? 'var(--sell-green)' : 'var(--text-main)');
-                document.getElementById('cur-diff').innerText = `${diff > 0 ? '▲' : '▼'} ${Math.abs(diff)} (${percent}%)`;
-                document.getElementById('cur-diff').style.color = color;
-                document.getElementById('cur-price').style.color = color;
-
-                document.getElementById('sync-status').innerText = `來源：Yahoo (Proxy ${i+1})`;
-                btn.innerText = "同步成功";
+                log(`✅ ${src.name} 同步成功！`);
+                document.getElementById('sync-status').innerText = `來源：${src.name}`;
                 success = true;
-                updateTextReport();
-                break; 
-            } catch (e) { console.warn(`代理 ${i + 1} 失敗`); }
+                break;
+            } catch (e) {
+                log(`❌ ${src.name} 失敗: ${e.message}`, true);
+            }
         }
-        if (!success) btn.innerText = "同步失敗";
+
+        if (!success) {
+            btn.innerText = "同步失敗";
+            log("❌ 所有行情來源均失效，請手動輸入。", true);
+        } else {
+            btn.innerText = "同步成功";
+            updateTextReport();
+        }
         setTimeout(() => { btn.innerText = "🔄 同步最新行情"; }, 2000);
+    }
+
+    function updatePriceUI(p) {
+        document.getElementById('trade-date').innerText = "日期：" + p.date;
+        document.getElementById('cur-price').innerText = parseFloat(p.close).toFixed(2);
+        document.getElementById('p-open').innerText = parseFloat(p.open).toFixed(2);
+        document.getElementById('p-high').innerText = parseFloat(p.high).toFixed(2);
+        document.getElementById('p-low').innerText = parseFloat(p.low).toFixed(2);
+        document.getElementById('p-vol').innerText = p.vol + " 張";
+
+        const diff = parseFloat(p.diff);
+        const close = parseFloat(p.close);
+        const prevClose = close - diff;
+        const percent = ((diff / prevClose) * 100).toFixed(2);
+        const color = diff > 0 ? 'var(--buy-red)' : (diff < 0 ? 'var(--sell-green)' : 'var(--text-main)');
+        
+        const diffElem = document.getElementById('cur-diff');
+        diffElem.innerText = `${diff > 0 ? '▲' : '▼'} ${Math.abs(diff)} (${percent}%)`;
+        diffElem.style.color = color;
+        document.getElementById('cur-price').style.color = color;
     }
 
     // --- 2. 手動貼上解析 (借券) ---
     function handleManualJson(val) {
         try {
-            if (val.includes("400 Bad Request") || val.includes("HiNetCDN")) {
-                alert("❌ 抓取失敗：被證交所防火牆阻擋 (400)。\n請檢查捷徑中的 Referer 標頭。");
-                return;
-            }
             const json = JSON.parse(val);
             if (json.data && json.data.length > 0) {
                 const d = json.data.find(r => r[0] === "7769") || json.data[0];
-                const credit = { sblPrev: d[8], sblIn: d[9], sblOut: d[10], sblAdj: d[11], sblBal: d[12], sblLimit: d[13] };
+                const credit = { sblPrev: d[8], sblIn: d[9], sblOut: d[10], sblBal: d[12], sblLimit: d[13] };
                 updateSBLUI(credit);
-                document.getElementById('sync-status').innerText = "來源：手動貼上官方數據";
+                log("✅ 借券 JSON 解析成功");
                 document.getElementById('manualJson').value = "";
-                alert("✅ 借券數據解析成功！");
             }
-        } catch (e) { console.log("JSON 解析失敗"); }
+        } catch (e) { log("❌ JSON 解析失敗", true); }
     }
 
     function updateSBLUI(c) {
@@ -223,7 +282,6 @@
             { id: 'sblPrev', label: '借券餘額(前日)', val: c.sblPrev, row: 'row-sblPrev' },
             { id: 'sblIn', label: '今日借券', val: c.sblIn, row: 'row-sblIn' },
             { id: 'sblOut', label: '今日還券', val: c.sblOut, row: 'row-sblOut' },
-            { id: 'sblAdj', label: '調整', val: c.sblAdj, row: 'row-sblAdj' },
             { id: 'sblBal', label: '借券餘額(今日)', val: c.sblBal, row: 'row-sblBal' },
             { id: 'sblLimit', label: '可借券限額', val: c.sblLimit, row: 'row-sblLimit' }
         ];
@@ -282,7 +340,7 @@
         cb(bVal, sVal);
     }
 
-    // --- 4. 文字報告 (已補上賣超前十名) ---
+    // --- 4. 文字報告 ---
     function updateTextReport() {
         const date = document.getElementById('trade-date').innerText;
         const price = document.getElementById('cur-price').innerText;
@@ -307,12 +365,10 @@
             report += `--------------------\n【買超前十】\n`;
             currentBuyList.forEach((item, idx) => report += `${idx + 1}. ${item.name} (+${item.net}張)\n`);
         }
-
         if (currentSellList.length > 0) {
             report += `\n【賣超前十】\n`;
             currentSellList.forEach((item, idx) => report += `${idx + 1}. ${item.name} (-${Math.abs(item.net)}張)\n`);
         }
-
         document.getElementById('textReport').value = report;
     }
 
@@ -334,7 +390,7 @@
         } catch (err) { alert("截圖失敗"); btn.innerText = "📸 產生分享截圖"; }
     }
 
-    fetchYahooPrice();
+    fetchPriceWithBackups();
 </script>
 
 </body>
