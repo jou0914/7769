@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7769 鴻勁 - AI 綜合分析 v4.2.0</title>
+    <title>7769 鴻勁 - AI 綜合分析 v4.2.1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
@@ -68,7 +68,7 @@
 <div class="container" id="captureArea">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
-            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v4.2.0 AI</span></h2>
+            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v4.2.1 AI</span></h2>
             <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | 綜合數據分析終端</div>
         </div>
         <div style="text-align: right;">
@@ -111,7 +111,7 @@
         <button onclick="askGemini()" class="btn btn-ai" id="aiBtn">🤖 AI 分析</button>
         <div class="btn btn-upload">📁 上傳分點 CSV<input type="file" id="csvFile" accept=".csv"></div>
         <button onclick="generatePreview()" id="shotBtn" class="btn btn-screenshot">📸 截圖</button>
-        <button onclick="copyAllLog()" class="btn btn-copy">📋 複製完整報告</button>
+        <button onclick="copyAllLog()" class="btn btn-copy">📋 複製報告</button>
     </div>
 
     <div id="aiSection" class="ai-section">
@@ -311,8 +311,6 @@
         if (finmindForeign) {
             report += `--------------------\n【外資持股詳細】(資料日:${finmindForeign.date})\n`;
             report += `外資持股比例：${finmindForeign.ForeignInvestmentSharesRatio.toFixed(2)}%\n`;
-            report += `外資尚可投資比例：${finmindForeign.ForeignInvestmentRemainRatio.toFixed(2)}%\n`;
-            report += `外資投資上限比例：${finmindForeign.ForeignInvestmentUpperLimitRatio.toFixed(2)}%\n`;
             report += `外資持有股數：${Number(finmindForeign.ForeignInvestmentShares).toLocaleString()} 股\n`;
             report += `發行總股數：${Number(finmindForeign.NumberOfSharesIssued).toLocaleString()} 股\n`;
         }
