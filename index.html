@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7769 鴻勁 - AI 綜合分析 v3.8.0</title>
+    <title>7769 鴻勁 - AI 綜合分析 v3.9.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
@@ -14,8 +14,6 @@
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: var(--bg); padding: 15px; margin: 0; color: var(--text-main); }
         .container { max-width: 1000px; margin: auto; background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; }
         
-        .version-tag { font-size: 10px; color: #bbb; vertical-align: middle; margin-left: 5px; }
-
         .dash-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
         .price-main { grid-column: span 2; display: flex; flex-direction: column; justify-content: center; }
         .current-price { font-size: 38px; font-weight: 800; line-height: 1; outline: none; }
@@ -52,6 +50,9 @@
         .up { color: var(--buy-red); font-weight: bold; }
         .down { color: var(--sell-green); font-weight: bold; }
 
+        /* 修正：確保 summary 區塊存在 */
+        .summary { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-weight: bold; border: 1px solid #eee; }
+
         .report-area { margin-top: 25px; padding: 15px; background: #f1f3f5; border-radius: 10px; border: 1px dashed #ccc; }
         textarea { width: 100%; height: 220px; border: none; background: transparent; font-family: monospace; font-size: 12px; color: #333; resize: none; outline: none; }
 
@@ -72,7 +73,7 @@
 <div class="container" id="captureArea">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
-            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v3.8.0 AI</span></h2>
+            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v3.9.2 AI</span></h2>
             <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | AI 智慧終端分析</div>
         </div>
         <div style="text-align: right;">
@@ -112,13 +113,13 @@
         <button onclick="copyAllLog()" class="btn btn-copy">📋 複製報告</button>
     </div>
 
-    <!-- AI 分析結果區 -->
-    <div id="aiSection" class="ai-section">
-        <div class="ai-title">✨ Gemini 專業金融分析</div>
-        <div id="aiContent" class="ai-content">正在思考中...</div>
+    <!-- 修正：確保 summary 區塊存在 -->
+    <div id="summary-info" class="summary" style="display:none;">
+        <span style="color:var(--buy-red)">總買進：<span id="total-buy">0</span> 張</span>
+        <span style="color:var(--sell-green)">總賣出：<span id="total-sell">0</span> 張</span>
     </div>
 
-    <div id="result" class="grid" style="display:none; margin-top: 20px;">
+    <div id="result" class="grid" style="display:none;">
         <div>
             <table>
                 <thead><tr><th colspan="3" class="buy-head">買超前十名 (張)</th></tr></thead>
@@ -133,7 +134,13 @@
         </div>
     </div>
 
-    <div class="report-area" id="reportContainer" data-html2canvas-ignore>
+    <!-- AI 分析結果區 -->
+    <div id="aiSection" class="ai-section">
+        <div class="ai-title">✨ Gemini 專業金融分析</div>
+        <div id="aiContent" class="ai-content">正在思考中...</div>
+    </div>
+
+    <div class="report-area" id="reportContainer" style="display:none;" data-html2canvas-ignore>
         <textarea id="textReport" readonly></textarea>
     </div>
 
@@ -168,15 +175,12 @@
     async function fetchAllData() {
         const btn = document.querySelector('.btn-fetch');
         btn.innerText = "同步中...";
-        log("連線 GAS 抓取行情 (富果優先)...");
-
+        log("連線 GAS 抓取行情...");
         try {
             const res = await fetch(GAS_URL);
             const data = await res.json();
             globalData = data;
-            
             if (data.debug) data.debug.forEach(m => log(m));
-
             if (data.price) {
                 const p = data.price;
                 document.getElementById('trade-date').innerText = "日期：" + p.date;
@@ -185,7 +189,6 @@
                 document.getElementById('p-high').innerText = p.high;
                 document.getElementById('p-low').innerText = p.low;
                 document.getElementById('p-vol').innerText = p.vol + " 張";
-                
                 const color = parseFloat(p.diff) > 0 ? 'var(--buy-red)' : (parseFloat(p.diff) < 0 ? 'var(--sell-green)' : 'var(--text-main)');
                 document.getElementById('cur-diff').innerText = `${parseFloat(p.diff) > 0 ? '▲' : '▼'} ${Math.abs(p.diff)} (${p.percent}%)`;
                 document.getElementById('cur-diff').style.color = color;
@@ -194,10 +197,7 @@
                 btn.innerText = "同步成功";
             }
             updateTextReport();
-        } catch (e) {
-            log("❌ 同步失敗: " + e.message);
-            btn.innerText = "同步失敗";
-        }
+        } catch (e) { log("❌ 同步失敗: " + e.message); btn.innerText = "同步失敗"; }
         setTimeout(() => { btn.innerText = "🔄 同步數據"; }, 2000);
     }
 
@@ -243,23 +243,15 @@
     }
 
     function updateSBLUI(c) {
-        const fields = [
-            { id: 'sblPrev', label: '借券餘額(前日)', val: c.sblPrev, row: 'row-sblPrev' },
-            { id: 'sblIn', label: '今日借券', val: c.sblIn, row: 'row-sblIn' },
-            { id: 'sblOut', label: '今日還券', val: c.sblOut, row: 'row-sblOut' },
-            { id: 'sblBal', label: '借券餘額(今日)', val: c.sblBal, row: 'row-sblBal' },
-            { id: 'sblLimit', label: '可借券限額', val: c.sblLimit, row: 'row-sblLimit' }
-        ];
+        const fields = [{id:'sblPrev',v:c.sblPrev},{id:'sblIn',v:c.sblIn},{id:'sblOut',v:c.sblOut},{id:'sblBal',v:c.sblBal},{id:'sblLimit',v:c.sblLimit}];
         let hasAny = false;
         fields.forEach(f => {
             const elem = document.getElementById(f.id);
-            if (f.val && f.val !== "0" && f.val !== "0,000") {
-                elem.innerText = f.val + " 股";
+            if (f.v && f.v !== "0" && f.v !== "0,000") {
+                elem.innerText = f.v + " 股";
                 elem.parentElement.style.display = "flex";
                 hasAny = true;
-            } else {
-                elem.parentElement.style.display = "none";
-            }
+            } else { elem.parentElement.style.display = "none"; }
         });
         document.getElementById('sbl-dashboard').style.display = hasAny ? "grid" : "none";
         updateTextReport();
@@ -268,64 +260,70 @@
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
+        log("正在讀取 CSV 檔案 (Big5)...");
         const reader = new FileReader();
         reader.readAsText(file, 'Big5');
         reader.onload = function(event) {
-            const lines = event.target.result.split('\n');
-            const brokerMap = {};
-            lines.forEach(line => {
-                const cols = line.replace(/"/g, '').split(',');
-                if (cols.length >= 5) processRow(cols[1], cols[3], cols[4], brokerMap);
-                if (cols.length >= 11) processRow(cols[7], cols[9], cols[10], brokerMap);
-            });
-            const resultArr = Object.keys(brokerMap).map(name => {
-                const d = brokerMap[name];
-                return { name: name.replace(/^\d{4}\s*/, ''), buy: Math.round(d.buy/1000), sell: Math.round(d.sell/1000), net: Math.round((d.buy-d.sell)/1000) };
-            });
-            currentBuyList = resultArr.filter(i=>i.net>0).sort((a,b)=>b.net-a.net).slice(0,10);
-            currentSellList = resultArr.filter(i=>i.net<0).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net)).slice(0,10);
-            document.getElementById('buy-body').innerHTML = currentBuyList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="up">${i.net}</td></tr>`).join('');
-            document.getElementById('sell-body').innerHTML = currentSellList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="down">${Math.abs(i.net)}</td></tr>`).join('');
-            document.getElementById('result').style.display = 'grid';
-            updateTextReport();
+            try {
+                const lines = event.target.result.split('\n');
+                const brokerMap = {};
+                let totalBuy = 0, totalSell = 0;
+
+                lines.forEach(line => {
+                    const cols = line.replace(/"/g, '').split(',');
+                    if (cols.length >= 5) processRow(cols[1], cols[3], cols[4], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
+                    if (cols.length >= 11) processRow(cols[7], cols[9], cols[10], brokerMap, (b,s)=>{totalBuy+=b; totalSell+=s;});
+                });
+
+                const resultArr = Object.keys(brokerMap).map(name => {
+                    const d = brokerMap[name];
+                    return { name: name.replace(/^\d{4}\s*/, ''), buy: Math.round(d.buy/1000), sell: Math.round(d.sell/1000), net: Math.round((d.buy-d.sell)/1000) };
+                });
+
+                // 安全檢查：確保元素存在
+                const buyEl = document.getElementById('total-buy');
+                const sellEl = document.getElementById('total-sell');
+                const infoEl = document.getElementById('summary-info');
+
+                if (buyEl) buyEl.innerText = Math.round(totalBuy/1000);
+                if (sellEl) sellEl.innerText = Math.round(totalSell/1000);
+                if (infoEl) infoEl.style.display = 'flex';
+
+                currentBuyList = resultArr.filter(i=>i.net>0).sort((a,b)=>b.net-a.net).slice(0,10);
+                currentSellList = resultArr.filter(i=>i.net<0).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net)).slice(0,10);
+                
+                document.getElementById('buy-body').innerHTML = currentBuyList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="up">${i.net}</td></tr>`).join('');
+                document.getElementById('sell-body').innerHTML = currentSellList.map(i=>`<tr><td style="text-align:left; font-weight:500;">${i.name}</td><td style="color:#888; font-size:11px;">${i.buy}/${i.sell}</td><td class="down">${Math.abs(i.net)}</td></tr>`).join('');
+                document.getElementById('result').style.display = 'grid';
+                log("✅ CSV 解析完成");
+                updateTextReport();
+            } catch (err) { log("❌ CSV 解析出錯: " + err.message, true); }
         };
     });
 
     function processRow(name, b, s, map, cb) {
         if (!name || name.includes("券商") || name.trim()==="") return;
         if (!map[name]) map[name] = {buy:0, sell:0};
-        const bVal = parseFloat(b)||0, sVal = parseFloat(s)||0;
+        const bVal = parseFloat(b.replace(/,/g,''))||0, sVal = parseFloat(s.replace(/,/g,''))||0;
         map[name].buy += bVal; map[name].sell += sVal;
         cb(bVal, sVal);
     }
 
-    // --- 4. 文字報告 (v3.8.0 強化版：加入開高低) ---
     function updateTextReport() {
+        if (!globalData.price) return;
+        const p = globalData.price;
         const date = document.getElementById('trade-date').innerText;
-        const price = document.getElementById('cur-price').innerText;
         const diff = document.getElementById('cur-diff').innerText;
         const open = document.getElementById('p-open').innerText;
         const high = document.getElementById('p-high').innerText;
         const low = document.getElementById('p-low').innerText;
         const vol = document.getElementById('p-vol').innerText;
 
-        let report = `📊 7769 鴻勁 綜合分析報告\n`;
-        report += `${date}\n`;
-        report += `收盤：${price} (${diff})\n`;
-        report += `開盤：${open} | 最高：${high} | 最低：${low}\n`;
-        report += `成交量：${vol}\n`;
+        let report = `📊 7769 鴻勁 綜合分析報告\n${date}\n收盤：${p.close} (${diff})\n開盤：${open} | 最高：${high} | 最低：${low}\n成交量：${vol}\n`;
         
         let sblText = "";
-        const sblItems = [
-            {l: "借券餘額(前日)", v: document.getElementById('sblPrev').innerText},
-            {l: "今日借券", v: document.getElementById('sblIn').innerText},
-            {l: "今日還券", v: document.getElementById('sblOut').innerText},
-            {l: "借券餘額(今日)", v: document.getElementById('sblBal').innerText},
-            {l: "可借券限額", v: document.getElementById('sblLimit').innerText}
-        ];
-        sblItems.forEach(item => {
-            if(item.v && item.v !== "" && item.v !== "0 股") sblText += `${item.l}：${item.v}\n`;
-        });
+        const sblItems = [{l:"借券餘額(前日)",v:document.getElementById('sblPrev').innerText},{l:"今日借券",v:document.getElementById('sblIn').innerText},{l:"今日還券",v:document.getElementById('sblOut').innerText},{l:"借券餘額(今日)",v:document.getElementById('sblBal').innerText},{l:"可借券限額",v:document.getElementById('sblLimit').innerText}];
+        sblItems.forEach(item => { if(item.v && item.v !== "" && item.v !== "0 股") sblText += `${item.l}：${item.v}\n`; });
         if(sblText) report += `--------------------\n【借券資訊】\n${sblText}`;
 
         if (currentBuyList.length > 0) {
@@ -341,9 +339,7 @@
 
     function copyAllLog() {
         const t = document.getElementById('textReport');
-        t.select();
-        document.execCommand('copy');
-        alert("✅ 報告已複製！");
+        t.select(); document.execCommand('copy'); alert("✅ 報告已複製！");
     }
 
     async function generatePreview() {
@@ -353,7 +349,7 @@
             document.getElementById('previewImg').src = canvas.toDataURL("image/png");
             document.getElementById('overlay').style.display = "flex";
             btn.innerText = "📸 截圖";
-        } catch (err) { alert("截圖失敗"); btn.innerText = "📸 產生分享截圖"; }
+        } catch (err) { alert("截圖失敗"); btn.innerText = "📸 截圖"; }
     }
 
     fetchAllData();
