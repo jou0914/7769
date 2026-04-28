@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7769 鴻勁 - AI 綜合分析 v3.5.0</title>
+    <title>7769 鴻勁 - AI 綜合分析 v3.6.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { 
@@ -14,7 +14,7 @@
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: var(--bg); padding: 15px; margin: 0; color: var(--text-main); }
         .container { max-width: 1000px; margin: auto; background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; }
         
-        .dash-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .dash-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
         .price-main { grid-column: span 2; display: flex; flex-direction: column; justify-content: center; }
         .current-price { font-size: 38px; font-weight: 800; line-height: 1; outline: none; }
         .price-diff { font-size: 16px; font-weight: 600; margin-top: 5px; outline: none; }
@@ -70,7 +70,7 @@
 <div class="container" id="captureArea">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div>
-            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v3.5.0 AI</span></h2>
+            <h2 style="margin:0; font-size: 24px; color: #333;">7769 鴻勁 <span class="version-tag">v3.6.0 AI</span></h2>
             <div style="font-size: 13px; color: var(--text-sub);">上市半導體 | AI 智慧終端分析</div>
         </div>
         <div style="text-align: right;">
@@ -163,10 +163,11 @@
         d.scrollTop = d.scrollHeight;
     }
 
+    // --- 1. 雲端同步 ---
     async function fetchAllData() {
         const btn = document.querySelector('.btn-fetch');
         btn.innerText = "同步中...";
-        log("連線 GAS 抓取行情 (Yahoo 模式)...");
+        log("連線 GAS 抓取行情 (富果優先)...");
 
         try {
             const res = await fetch(GAS_URL);
@@ -188,6 +189,7 @@
                 document.getElementById('cur-diff').innerText = `${parseFloat(p.diff) > 0 ? '▲' : '▼'} ${Math.abs(p.diff)} (${p.percent}%)`;
                 document.getElementById('cur-diff').style.color = color;
                 document.getElementById('cur-price').style.color = color;
+                document.getElementById('sync-status').innerText = `來源：${p.source || '雲端'}`;
                 btn.innerText = "同步成功";
             }
             updateTextReport();
